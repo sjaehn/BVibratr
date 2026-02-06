@@ -7,7 +7,7 @@ Key features:
 * Effect plugin, but play it like an instrument
 * Modifies sound of other instruments / samples
 
-![screenshot](https://raw.githubusercontent.com/sjaehn/BVibratr/master/doc/screenshot.png "Screenshot from B.Vibratr")
+![screenshot](doc/screenshot.png "Screenshot from B.Vibratr")
 
 
 ## Installation
