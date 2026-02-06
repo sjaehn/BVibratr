@@ -34,6 +34,9 @@ private:
 	void on_midi_note_off (const uint8_t channel, const uint8_t note, const uint8_t velocity);
 	void on_midi_cc (const uint8_t channel, const uint8_t cc, const uint8_t param);
 	void on_midi (const uint8_t* const msg);
+	static void on_osc1_restart(LFO<double>& adsr, void* obj);
+	static void on_osc2_restart(LFO<double>& adsr, void* obj);
+	static void on_osc3_restart(LFO<double>& adsr, void* obj);
 	void play (uint32_t start, uint32_t end);
 
 	double rate;
