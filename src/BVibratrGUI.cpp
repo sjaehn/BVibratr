@@ -268,8 +268,14 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 			// All other widgets
 			else
 			{
-				BWidgets::ValueableTyped<double>* valueable = dynamic_cast<BWidgets::ValueableTyped<double>*>(controllerWidgets[idx]);
-				if (valueable) valueable->setValue (*pval);
+				BWidgets::ValueableTyped<double>* valueable_double = dynamic_cast<BWidgets::ValueableTyped<double>*>(controllerWidgets[idx]);
+				if (valueable_double) valueable_double->setValue (*pval);
+
+				else
+				{
+					BWidgets::ValueableTyped<bool>* valueable_bool = dynamic_cast<BWidgets::ValueableTyped<bool>*>(controllerWidgets[idx]);
+					if (valueable_bool) valueable_bool->setValue (*pval);
+				};
 			}
 		}
 	}
@@ -538,13 +544,16 @@ void BVibratrGUI::valueChangedCallback (BEvents::Event* event)
 			// All other widgets
 			else
 			{
-				BWidgets::ValueableTyped<double>* valueable = dynamic_cast<BWidgets::ValueableTyped<double>*>(widget);
-				if (valueable)
-				{
-					value = valueable->getValue();
-				}
+				BWidgets::ValueableTyped<double>* valueable_double = dynamic_cast<BWidgets::ValueableTyped<double>*>(widget);
+				if (valueable_double) value = valueable_double->getValue();
 
-				else return;
+				else 
+				{
+					BWidgets::ValueableTyped<bool>* valueable_bool = dynamic_cast<BWidgets::ValueableTyped<bool>*>(widget);
+					if (valueable_bool) value = valueable_bool->getValue();
+
+					else return;
+				}
 			}
 		} 
 

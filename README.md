@@ -120,7 +120,7 @@ request or notifying me (issue report, e-mail, ...).
 
 ## What's new
 
-TODO
+* Bypass, dry/wet
 
 
 ## TODOs

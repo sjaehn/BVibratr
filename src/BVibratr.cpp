@@ -33,7 +33,8 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	osc3_mode(0),
 	depth(0.0),
 	shift(0.0, (SQRT_12_2 - 1.0)),	// Limit temporal shift to 1 semitone
-	amp(1.0, 0.001)
+	amp(1.0f, 0.001f),
+	mix(0.0f, 0.001f)
 {
 	// Init controllers
 	controller_ports.fill(nullptr);
@@ -94,8 +95,14 @@ void BVibratr::run (uint32_t n_samples)
 		controllers[i] = value;
 		switch (i)
 		{
+			case BVIBRATR_BYPASS:
+			case BVIBRATR_DRY_WET:
+				mix.set((1.0f - controllers[BVIBRATR_BYPASS]) * controllers[BVIBRATR_DRY_WET]);
+				break;
+
 			case BVIBRATR_DEPTH_IS_CC:
 				depth =	((value == 128) ? (0.01 /* cents */ * controllers[BVIBRATR_DEPTH]) : depth_cc);
+				break;
 
 			case BVIBRATR_DEPTH:
 				if (controllers[BVIBRATR_DEPTH_IS_CC] == 128) depth = 0.01 /* cents */ * value;
@@ -363,11 +370,19 @@ void BVibratr::play (uint32_t start, uint32_t end)
 		const double tremolo  = controllers[BVIBRATR_TREMOLO] * signal;
 		amp.set(1.0 - tremolo);
 
+		// Proceed dry/wet mix
+		mix.proceed();
+		const float mix_f = mix.get();
+
 		// Audio output
 		buffer_1.push_front(audio_in_1[i]);
 		buffer_2.push_front(audio_in_2[i]);
-		audio_out_1[i] = amp.get() * buffer_1[buffer_offset + shift.get()];
-		audio_out_2[i] = amp.get() * buffer_2[buffer_offset + shift.get()];
+		const float dry_1 = buffer_1[buffer_offset];
+		const float dry_2 = buffer_2[buffer_offset];
+		const float wet_1 = amp.get() * buffer_1[buffer_offset + shift.get()];
+		const float wet_2 = amp.get() * buffer_2[buffer_offset + shift.get()];
+		audio_out_1[i] = (1.0f - mix_f) * dry_1 + mix_f * wet_1;
+		audio_out_2[i] = (1.0f - mix_f) * dry_2 + mix_f * wet_2;
 	}
 }
 

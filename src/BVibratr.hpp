@@ -63,7 +63,8 @@ private:
 	int osc1_mode, osc2_mode, osc3_mode;	// TODO Schedule change
 	double depth;
 	LinearFader<double> shift;				// Temporal shift (vibrato)
-	LinearFader<double> amp;				// Volume change (tremolo)
+	LinearFader<float> amp;				// Volume change (tremolo)
+	LinearFader<float> mix;					// Mix for change in dry/wet and bypass
 };
 
 #endif /* BVIBRATR_HPP_ */
