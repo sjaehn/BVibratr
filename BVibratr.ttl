@@ -1,0 +1,376 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix units: <http://lv2plug.in/ns/extensions/units#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+@prefix time: <http://lv2plug.in/ns/ext/time#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+#@prefix state: <http://lv2plug.in/ns/ext/state#> .
+#@prefix work:  <http://lv2plug.in/ns/ext/worker#> .
+#@prefix rsz: <http://lv2plug.in/ns/ext/resize-port#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
+
+<http://www.jahnichen.de/sjaehn#me>
+	a foaf:Person;
+	foaf:name "Sven Jaehnichen";
+#	foaf:mbox ;
+	foaf:homepage <https://github.com/sjaehn/> .
+
+<https://www.jahnichen.de/plugins/lv2/BVibratr#gui> a ui:X11UI ;
+    lv2:binary <BVibratrGUI.so> ;
+    lv2:requiredFeature ui:idleInterface ;
+    lv2:extensionData ui:idleInterface .
+
+<https://www.jahnichen.de/plugins/lv2/BVibratr>
+        a lv2:Plugin, lv2:InstrumentPlugin, doap:Project;
+        doap:name "B.Vibratr" ;
+        rdfs:comment "Flavoured vibrato as an instrument" ;
+	doap:maintainer <http://www.jahnichen.de/sjaehn#me> ;
+	doap:license <http://usefulinc.com/doap/licenses/gpl> ;
+#	lv2:microVersion 1 ;
+#	lv2:minorVersion 0 ;
+        lv2:optionalFeature lv2:hardRTCapable ;
+        lv2:binary <BVibratr.so> ;
+	lv2:requiredFeature urid:map ;
+#       lv2:requiredFeature work:schedule ;                     # Only needed if worker is used
+#	lv2:extensionData state:interface;                      # Only needed if additional data are stored in the plugin state
+#	lv2:extensionData work:interface;                       # Only needed if worker is used
+	ui:ui <https://www.jahnichen.de/plugins/lv2/BVibratr#gui> ;
+	
+        # MIDI input port
+	lv2:port
+        [
+                a lv2:InputPort , atom:AtomPort ;
+                lv2:designation lv2:control;
+                atom:bufferType atom:Sequence ;
+                atom:supports time:Position ;
+                atom:supports midi:MidiEvent ;
+                lv2:index 0 ;
+                lv2:symbol "midi_in" ;
+                lv2:name "Midi in" ;
+        ] ,
+
+        # Audio input ports (stereo) 
+        [
+		a lv2:AudioPort , lv2:InputPort ;
+		lv2:index 1 ;
+		lv2:symbol "audio_in_1" ;
+		lv2:name "Audio Input 1" ;
+	] , 
+        
+        [
+		a lv2:AudioPort , lv2:InputPort ;
+		lv2:index 2 ;
+		lv2:symbol "audio_in_2" ;
+		lv2:name "Audio Input 2" ;
+	] , 
+        
+        # Audio output ports (stereo)
+        [
+		a lv2:AudioPort , lv2:OutputPort ;
+		lv2:index 3 ;
+		lv2:symbol "audio_out_1" ;
+		lv2:name "Audio Output 1" ;
+	] , 
+        
+        [
+		a lv2:AudioPort , lv2:OutputPort ;
+		lv2:index 4 ;
+		lv2:symbol "audio_out_2" ;
+		lv2:name "Audio Output 2" ;
+        ] ,
+        
+        # Control ports
+        # Bypass / Dry/wet
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 5 ;
+                lv2:symbol "bypass" ;
+                lv2:name "Bypass" ;
+		lv2:portProperty lv2:integer, lv2:enumeration ;
+		lv2:scalePoint [ rdfs:label "Off"; rdf:value 0 ] ;
+		lv2:scalePoint [ rdfs:label "On"; rdf:value 1 ] ;
+                lv2:default 0 ;
+                lv2:minimum 0 ;
+                lv2:maximum 1 ;
+        ] , 
+        
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 6 ;
+                lv2:symbol "dry_wet" ;
+                lv2:name "Dry / wet" ;
+		lv2:default 1.0 ;
+                lv2:minimum 0.0 ;
+                lv2:maximum 1.0 ;
+        ] ,
+
+        # Trigger control
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 7 ;
+		lv2:symbol "trigger_channels" ;
+		lv2:name "Trigger MIDI channels" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 1 ;
+		lv2:minimum 0 ;
+		lv2:maximum 65535 ;
+                rdfs:comment "0 means no MIDI trigger (permanently running), otherwise bits for each channel" ;
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 8 ;
+		lv2:symbol "trigger_note" ;
+		lv2:name "Trigger MIDI note" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 60 ;
+		lv2:minimum 0 ;
+		lv2:maximum 127 ;
+                rdfs:comment "MIDI note number" ;
+        ] ,
+
+        # Depth
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 9 ;
+		lv2:symbol "depth_is_cc" ;
+		lv2:name "CC Nr." ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 128 ;
+		lv2:minimum 0 ;
+		lv2:maximum 128 ;
+                rdfs:comment "128 means no CC, otherwise MIDI CC Number" ;
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 10 ;
+                lv2:symbol "depth" ;
+                lv2:name "Depth" ;
+		lv2:default 20.0 ;
+                lv2:minimum 0.0 ;
+                lv2:maximum 50.0 ;
+                units:unit units:cent ;
+                rdfs:comment "Vibrato depth in cents";
+        ] ,
+
+        # Depth ADSR
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 11 ;
+                lv2:symbol "depth_attack" ;
+                lv2:name "Depth attack" ;
+		lv2:default 1.0 ;
+                lv2:minimum 0.1 ;
+                lv2:maximum 4.0 ;
+                units:unit units:s ;
+                rdfs:comment "Attack time for vibrato depth value in seconds";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 12 ;
+                lv2:symbol "depth_decay" ;
+                lv2:name "Depth decay" ;
+		lv2:default 1.0 ;
+                lv2:minimum 0.1 ;
+                lv2:maximum 4.0 ;
+                units:unit units:s ;
+                rdfs:comment "Decay time for vibrato depth value in seconds";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 13 ;
+                lv2:symbol "depth_sustain" ;
+                lv2:name "Depth sustain" ;
+		lv2:default 0.8 ;
+                lv2:minimum 0.0 ;
+                lv2:maximum 1.0 ;
+                rdfs:comment "Sustain amount for vibrato depth value";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 14;
+                lv2:symbol "depth_release" ;
+                lv2:name "Depth release" ;
+		lv2:default 2.0 ;
+                lv2:minimum 0.1 ;
+                lv2:maximum 4.0 ;
+                units:unit units:s ;
+                rdfs:comment "Release time for vibrato depth value in seconds";
+        ] ,
+        
+        # LFO1
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 15 ;
+                lv2:symbol "osc1_frequency" ;
+                lv2:name "Osc 1 frequency (base)" ;
+		lv2:default 6.0 ;
+                lv2:minimum 1.0 ;
+                lv2:maximum 20.0 ;
+                units:unit units:hz ;
+                rdfs:comment "Vibrato base frequency in Hz";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 16 ;
+                lv2:symbol "osc1_mode" ;
+                lv2:name "Osc 1 Mode" ;
+                lv2:portProperty lv2:integer, lv2:enumeration ;
+		lv2:scalePoint [ rdfs:label "LFO"; rdf:value 1 ] ;
+		lv2:scalePoint [ rdfs:label "User-defined"; rdf:value 2 ] ; # TODO, not supported yet
+		lv2:default 1 ;
+                lv2:minimum 1 ;
+                lv2:maximum 2 ;
+                rdfs:comment "Osc 1 can run either as a low frequency oscillator or use a user-defined waveform.";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 17 ;
+                lv2:symbol "osc1_waveform" ;
+                lv2:name "Osc 1 waveform" ;
+                lv2:portProperty lv2:integer, lv2:enumeration ;
+                lv2:scalePoint [ rdfs:label "Sine"; rdf:value 1 ] ;
+                lv2:scalePoint [ rdfs:label "Triangle"; rdf:value 2 ] ;
+                lv2:scalePoint [ rdfs:label "Square"; rdf:value 3 ] ;
+		lv2:default 1 ;
+                lv2:minimum 1 ;
+                lv2:maximum 3 ;
+                rdfs:comment "LFO waveform for Osc 1."
+        ] ,
+
+        # LFO2
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 18 ;
+                lv2:symbol "osc2_amp" ;
+                lv2:name "Osc 2 amplitude" ;
+		lv2:default 0.5 ;
+                lv2:minimum 0.0 ;
+                lv2:maximum 1.0 ;
+                rdfs:comment "Osc 2 amplitude";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 19 ;
+                lv2:symbol "osc2_frequency" ;
+                lv2:name "Osc 2 frequency" ;
+		lv2:default 1.8 ;
+                lv2:minimum 1.0 ;
+                lv2:maximum 20.0 ;
+                units:unit units:hz ;
+                rdfs:comment "Osc 2 frequency in Hz";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 20 ;
+                lv2:symbol "osc2_mode" ;
+                lv2:name "Osc 2 Mode" ;
+                lv2:portProperty lv2:integer, lv2:enumeration ;
+		lv2:scalePoint [ rdfs:label "Off"; rdf:value 1 ] ;
+		lv2:scalePoint [ rdfs:label "Add"; rdf:value 2 ] ;
+                lv2:scalePoint [ rdfs:label "FM 1"; rdf:value 3 ] ;
+                lv2:scalePoint [ rdfs:label "PM 1"; rdf:value 4 ] ; # TODO
+                lv2:scalePoint [ rdfs:label "AM 1"; rdf:value 5 ] ;
+		lv2:default 1 ;
+                lv2:minimum 1 ;
+                lv2:maximum 5 ;
+                rdfs:comment "Osc 2 can run either add to osc 1 or modulate osc 1.";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 21 ;
+                lv2:symbol "osc2_waveform" ;
+                lv2:name "Osc 2 waveform" ;
+                lv2:portProperty lv2:integer, lv2:enumeration ;
+                lv2:scalePoint [ rdfs:label "Sine"; rdf:value 1 ] ;
+                lv2:scalePoint [ rdfs:label "Triangle"; rdf:value 2 ] ;
+                lv2:scalePoint [ rdfs:label "Square"; rdf:value 3 ] ;
+		lv2:default 1 ;
+                lv2:minimum 1 ;
+                lv2:maximum 3 ;
+                rdfs:comment "LFO waveform for Osc 2."
+        ] ,
+
+        # LFO3
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 22 ;
+                lv2:symbol "osc3_amp" ;
+                lv2:name "Osc 3 amplitude" ;
+		lv2:default 0.2 ;
+                lv2:minimum 0.0 ;
+                lv2:maximum 1.0 ;
+                rdfs:comment "Osc 3 amplitude";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 23 ;
+                lv2:symbol "osc3_frequency" ;
+                lv2:name "Osc 3 frequency" ;
+		lv2:default 1.0 ;
+                lv2:minimum 1.0 ;
+                lv2:maximum 20.0 ;
+                units:unit units:hz ;
+                rdfs:comment "Osc 3 frequency in Hz";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 24 ;
+                lv2:symbol "osc3_mode" ;
+                lv2:name "Osc 3 Mode" ;
+                lv2:portProperty lv2:integer, lv2:enumeration ;
+		lv2:scalePoint [ rdfs:label "Off"; rdf:value 1 ] ;
+		lv2:scalePoint [ rdfs:label "Add"; rdf:value 2 ] ;
+                lv2:scalePoint [ rdfs:label "FM 1"; rdf:value 3 ] ;
+                lv2:scalePoint [ rdfs:label "PM 1"; rdf:value 4 ] ; # TODO
+                lv2:scalePoint [ rdfs:label "AM 1"; rdf:value 5 ] ;
+                lv2:scalePoint [ rdfs:label "FM 2"; rdf:value 6 ] ;
+                lv2:scalePoint [ rdfs:label "PM 2"; rdf:value 7 ] ; # TODO
+                lv2:scalePoint [ rdfs:label "AM 2"; rdf:value 8 ] ;
+		lv2:default 1 ;
+                lv2:minimum 1 ;
+                lv2:maximum 8 ;
+                rdfs:comment "Osc 3 can run either add to osc 1 or 2, or modulate osc 1 or 2.";
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 25 ;
+                lv2:symbol "osc3_waveform" ;
+                lv2:name "Osc 3 waveform" ;
+                lv2:portProperty lv2:integer, lv2:enumeration ;
+                lv2:scalePoint [ rdfs:label "Sine"; rdf:value 1 ] ;
+                lv2:scalePoint [ rdfs:label "Triangle"; rdf:value 2 ] ;
+                lv2:scalePoint [ rdfs:label "Square"; rdf:value 3 ] ;
+		lv2:default 1 ;
+                lv2:minimum 1 ;
+                lv2:maximum 3 ;
+                rdfs:comment "LFO waveform for Osc 3."
+        ] ,
+
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 26 ;
+                lv2:symbol "tremolo" ;
+                lv2:name "Tremolo" ;
+		lv2:default 0.0 ;
+                lv2:minimum 0.0 ;
+                lv2:maximum 0.5 ;
+                rdfs:comment "Amount of additional tremolo. The tremolo is synchronized with the vibrato.";
+        ] .

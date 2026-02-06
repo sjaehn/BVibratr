@@ -1,0 +1,40 @@
+{
+    {
+        "Bypass",
+        {
+            {"de_DE", "Bypass"},
+            {"fr_FR", "Activer"}
+        }
+    },
+
+    {
+        "Dry/wet",
+        {
+            {"de_DE", "Dry/wet"},
+            {"fr_FR", "Dry/wet"}
+        }
+    },
+
+    {
+        "Channel",
+        {
+            {"de_DE", "Kanal"},
+            {"fr_FR", "Canal"}
+        }
+    },
+
+    {
+        "Note",
+        {
+            {"de_DE", "Note"},
+            {"fr_FR", "Note"}
+        }
+    },
+
+    {
+        "Use",
+        {
+            {"de_DE", "Benutze"}
+        }
+    }
+}
