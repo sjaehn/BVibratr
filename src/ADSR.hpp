@@ -1,5 +1,6 @@
 #include <array>
 #include <cmath>
+#include <functional>
 
 /**
 ADSR envelope class.
@@ -9,11 +10,12 @@ class ADSR
 {
     public:
     enum Phase {ATTACK = 0, DECAY, SUSTAIN, RELEASE};
+    enum Event {START, PHASE_CHANGE, STOP};
 
     enum Fader 
     {
         LINEAR,     // Linear fading for A, D and R with y = x in the relative range [0, 1]. 
-        INVSQR,        // Non-linear fading for A, D and R with y = 1 - (1 - x)^2 in the relative range [0, 1].
+        INVSQR,     // Non-linear fading for A, D and R with y = 1 - (1 - x)^2 in the relative range [0, 1].
         SQRT,       // Non-linear fading for A, D and R with y = sqrt(x) in the relative range [0, 1].
         SINE_1_4    // Non-linear fading for A, D and R with y = sin(pi/2 * x) in the relative range [0, 1].
     };
@@ -108,6 +110,20 @@ class ADSR
     */
     const bool is_active() const;
 
+    /**
+    Sets a callback function for one of the events START, PHASE_CHANGE, STOP. The passed callback function will
+    be called upon the respective event together with this object and optional arguments.
+    @param callback Reference to a callback function of the type void function(ADSR<T>&, void*).
+    @param args     Pointer to the arguments which will be passed together with this object to the callback function. 
+     */
+    void setCallbackFunction(const Event event, const std::function<void(ADSR<T>&, void*)> &callback, void* args = nullptr);
+
+    /**
+    Removes the link to an external callback function for the respective event.
+    @param event    Event.
+     */
+    void removeCallbackFunction(const Event event);
+
     protected:
     bool active_;
     std::array<T, 4> param_;
@@ -116,6 +132,22 @@ class ADSR
 
     /* Time exceeded in phase_. May be negative. */
     T phase_time_;
+
+    std::array<std::pair<std::function<void(ADSR<T>&, void*)>, void*>, STOP + 1> callbacks_;
+
+    /**
+    Distributes the events of this objects by calling the respective callback function together with a reference to 
+    this object and a pointer to the optionally provided args. Also see: setCallbackFunction.
+    @param event    Event.
+     */
+    void on_event_(const Event event);
+
+    /**
+    Default callback function. Doesn't do anything.
+    @param adsr     Reference to the ADSR<T> object which caused calling of this callback. Here unused.
+    @param args     Pointer to optional parameters. Here unused.
+     */
+    static void defaultCallback_(ADSR& adsr, void* args) {}
 };
 
 template <class T> inline ADSR<T>::ADSR () : ADSR (0.0, 0.0, 1.0, 0.0, LINEAR) {}
@@ -130,7 +162,7 @@ template <class T> inline ADSR<T>::ADSR (const T attack, const T decay, const T 
     fader_(fader),
     phase_time_(0.0)
 {
-    run ();
+    callbacks_.fill(std::pair<std::function<void(ADSR<T>&, void*)>, void*>(&defaultCallback_, nullptr));
 }
 
 template <class T> inline void ADSR<T>::set_parameters (const T attack, const T decay, const T sustain, const T release)
@@ -191,6 +223,7 @@ template <class T> inline void ADSR<T>::start ()
     phase_= ATTACK;
     phase_time_ = 0.0f;
     run();
+    on_event_(START);
 }
 
 template <class T> inline void ADSR<T>::run (const T time)
@@ -209,6 +242,7 @@ template <class T> inline void ADSR<T>::run (const T time)
         {
             phase_time_ -= param_[phase_];
             phase_ = static_cast<Phase>(phase_ + 1);
+            on_event_(PHASE_CHANGE);
         }
     }
 }
@@ -228,6 +262,25 @@ template <class T> inline void ADSR<T>::release ()
     run();
 }
 
-template <class T> inline void ADSR<T>::stop () {active_ = false;}
+template <class T> inline void ADSR<T>::stop () 
+{
+    active_ = false;
+    on_event_(STOP);
+}
 
 template <class T> inline const bool ADSR<T>::is_active () const {return active_;}
+
+template <class T> void ADSR<T>::setCallbackFunction(const typename ADSR<T>::Event event, const std::function<void(ADSR<T>&, void*)> &callback, void* args)
+{
+    callbacks_[event] = std::pair<std::function<void(ADSR<T>&, void*)>, void*>(callback, args);
+}
+
+template <class T> void ADSR<T>::removeCallbackFunction(const typename ADSR<T>::Event event)
+{
+    callbacks_[event] = std::pair<std::function<void(ADSR<T>&, void*)>, void*>(&defaultCallback_, nullptr);
+}
+
+template <class T> void ADSR<T>::on_event_(const typename ADSR<T>::Event event)
+{
+    callbacks_[event].first(*this, callbacks_[event].second);
+}

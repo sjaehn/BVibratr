@@ -1,10 +1,18 @@
 #include <cmath>
+#include <functional>
 
 template <class T>
 class LFO
 {
 public:
     enum Waveform {SINE = 1, TRIANGLE, SQUARE};
+
+    enum Event 
+    {
+        START,          // Event elicited if LFO starts.
+        PHASE_RESTART,  // Event elicited if phase (plus shift) ended and restarts.
+        STOP            // Event elicited if LFO stopped.
+    };          
 
     /**
     Constructs a new LFO object with default parameters.
@@ -90,6 +98,20 @@ public:
     */
     bool is_active() const;
 
+    /**
+    Sets a callback function for one of the events START, PHASE_CHANGE, STOP. The passed callback function will
+    be called upon the respective event together with this object and optional arguments.
+    @param callback Reference to a callback function of the type void function(LFO<T>&, void*).
+    @param args     Pointer to the arguments which will be passed together with this object to the callback function. 
+     */
+    void setCallbackFunction(const Event event, const std::function<void(LFO<T>&, void*)> &callback, void* args = nullptr);
+
+    /**
+    Removes the link to an external callback function for the respective event.
+    @param event    Event.
+     */
+    void removeCallbackFunction(const Event event);
+
 protected:
     Waveform waveform_;
     Waveform scheduled_waveform_;
@@ -97,6 +119,22 @@ protected:
     T phase_;
     T shift_;
     bool active_;
+
+    std::array<std::pair<std::function<void(LFO<T>&, void*)>, void*>, STOP + 1> callbacks_;
+
+    /**
+    Distributes the events of this objects by calling the respective callback function together with a reference to 
+    this object and a pointer to the optionally provided args. Also see: setCallbackFunction.
+    @param event    Event.
+     */
+    void on_event_(const Event event);
+
+    /**
+    Default callback function. Doesn't do anything.
+    @param adsr     Reference to the LFO<T> object which caused calling of this callback. Here unused.
+    @param args     Pointer to optional parameters. Here unused.
+     */
+    static void defaultCallback_(LFO& adsr, void* args) {}
 };
 
 template <class T> inline LFO<T>::LFO () : LFO (SINE, 1.0) {}
@@ -109,7 +147,7 @@ template <class T> inline LFO<T>::LFO (const Waveform waveform, const T freq) :
     shift_(0.0),
     active_(false)
 {
-
+    callbacks_.fill(std::pair<std::function<void(LFO<T>&, void*)>, void*>(&defaultCallback_, nullptr));
 }
 
 template <class T> inline void LFO<T>::set_frequency (const T freq) {freq_ = freq;}
@@ -133,6 +171,7 @@ template <class T> inline void LFO<T>::start ()
     phase_ = 0.0;
     waveform_ = scheduled_waveform_;
     active_ = true;
+    on_event_(START);
 }
 
 template <class T> inline void LFO<T>::stop () 
@@ -140,13 +179,19 @@ template <class T> inline void LFO<T>::stop ()
     phase_ = 0.0;
     waveform_ = scheduled_waveform_;
     active_ = false;
+    on_event_(STOP);
 }
 
 template <class T> inline void LFO<T>::run (const T time) 
 {
     if (!active_) return;
 
-    if (std::floor(phase_ + shift_ + time * freq_) != std::floor (phase_ + shift_)) waveform_ = scheduled_waveform_;
+    if (std::floor(phase_ + shift_ + time * freq_) != std::floor (phase_ + shift_)) 
+    {
+        waveform_ = scheduled_waveform_;
+        on_event_(PHASE_RESTART);
+    }
+
     phase_ += time * freq_;
     if (phase_ >= 1.0) phase_ = std::fmod(phase_, 1.0);
 }
@@ -203,3 +248,18 @@ template <class T> inline T LFO<T>::get_integral () const
 }
 
 template <class T> inline bool LFO<T>::is_active () const {return active_;}
+
+template <class T> void LFO<T>::setCallbackFunction(const typename LFO<T>::Event event, const std::function<void(LFO<T>&, void*)> &callback, void* args)
+{
+    callbacks_[event] = std::pair<std::function<void(LFO<T>&, void*)>, void*>(callback, args);
+}
+
+template <class T> void LFO<T>::removeCallbackFunction(const typename LFO<T>::Event event)
+{
+    callbacks_[event] = std::pair<std::function<void(LFO<T>&, void*)>, void*>(&defaultCallback_, nullptr);
+}
+
+template <class T> void LFO<T>::on_event_(const typename LFO<T>::Event event)
+{
+    callbacks_[event].first(*this, callbacks_[event].second);
+}
