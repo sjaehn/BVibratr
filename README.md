@@ -121,6 +121,7 @@ request or notifying me (issue report, e-mail, ...).
 ## What's new
 
 * Bypass, dry/wet
+* Enable trigger on any MIDI key 
 
 
 ## TODOs

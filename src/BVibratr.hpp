@@ -52,10 +52,11 @@ private:
 
 	// Controllers
 	std::array<float, BVIBRATR_NR_CONTROLLERS> controllers;
-	ADSR<double> adsr;
 
 	// Internals
+	ADSR<double> adsr;
 	LFO<double> osc1, osc2, osc3;
+	uint8_t note;							// Last NOTE_ON note (or >= 0x80 for none)
 	double depth_cc;
 	RingBuffer<float> buffer_1;
 	RingBuffer<float> buffer_2;
@@ -63,7 +64,7 @@ private:
 	int osc1_mode, osc2_mode, osc3_mode;	// TODO Schedule change
 	double depth;
 	LinearFader<double> shift;				// Temporal shift (vibrato)
-	LinearFader<float> amp;				// Volume change (tremolo)
+	LinearFader<float> amp;					// Volume change (tremolo)
 	LinearFader<float> mix;					// Mix for change in dry/wet and bypass
 };
 

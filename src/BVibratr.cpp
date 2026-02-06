@@ -22,6 +22,7 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	osc1(),
 	osc2(),
 	osc3(),
+	note(0xFF),
 	depth_cc (1.0),
 	buffer_1(0x10000),
 	buffer_2(0x10000),
@@ -175,6 +176,8 @@ void BVibratr::on_midi_note_on (const uint8_t channel, const uint8_t note, const
 			osc1.start();
 			osc2.start();
 			osc3.start();
+
+			this->note = note;
 		}
 	}
 }
@@ -183,8 +186,11 @@ void BVibratr::on_midi_note_off (const uint8_t channel, const uint8_t note, cons
 {
 	if (static_cast<uint16_t>(controllers[BVIBRATR_MIDI_CHANNEL]) & (1 << channel))
 	{
-		// TODO Handle situations where controllers[BVIBRATR_MIDI_NOTE] changed before NOTE_OFF
-		if ((controllers[BVIBRATR_MIDI_NOTE] == note) || (controllers[BVIBRATR_MIDI_NOTE] == 128)) adsr.release();
+		if (this->note == note)
+		{
+			adsr.release();
+			this->note = 0xFF;
+		}
 	}
 }
 
