@@ -130,8 +130,8 @@
 		lv2:portProperty lv2:integer ;
 		lv2:default 60 ;
 		lv2:minimum 0 ;
-		lv2:maximum 127 ;
-                rdfs:comment "MIDI note number" ;
+		lv2:maximum 128 ;
+                rdfs:comment "MIDI note number. 128 for any note." ;
         ] ,
 
         # Depth

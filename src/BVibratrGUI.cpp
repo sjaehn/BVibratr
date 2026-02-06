@@ -113,6 +113,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 
 	const std::array<const std::string, 12> keys {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 	for (int i = 0; i < 128; ++i) midiNoteCombobox.addItem(std::to_string(i) + " - " + keys[i % 12] + std::to_string(static_cast<int>(i / 12) - 1));
+	midiNoteCombobox.addItem(BDICT("Any"));
 
 	drywetDial.setClickable(false);
 	drywetDial.setScrollable(true);

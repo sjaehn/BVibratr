@@ -27,7 +27,7 @@ constexpr std::array<const Limit, BVIBRATR_NR_CONTROLLERS> controller_limits =
     {0, 1, 1},
     {0, 1, 0},
     {0, 65535, 1},
-    {0, 127, 1},
+    {0, 128, 1},
     {0, 128, 1},
     {0.0, 50.0, 0.0},
     {0.1, 4.0, 0.0},

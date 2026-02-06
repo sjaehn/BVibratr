@@ -157,7 +157,7 @@ void BVibratr::on_midi_note_on (const uint8_t channel, const uint8_t note, const
 {
 	if (static_cast<uint16_t>(controllers[BVIBRATR_MIDI_CHANNEL]) & (1 << channel))
 	{
-		if (controllers[BVIBRATR_MIDI_NOTE] == note)
+		if ((controllers[BVIBRATR_MIDI_NOTE] == note) || (controllers[BVIBRATR_MIDI_NOTE] == 128))
 		{
 			adsr.set_parameters	(controllers[BVIBRATR_DEPTH_ATTACK],
 								 controllers[BVIBRATR_DEPTH_DECAY],
@@ -183,7 +183,8 @@ void BVibratr::on_midi_note_off (const uint8_t channel, const uint8_t note, cons
 {
 	if (static_cast<uint16_t>(controllers[BVIBRATR_MIDI_CHANNEL]) & (1 << channel))
 	{
-		if (controllers[BVIBRATR_MIDI_NOTE] == note) adsr.release();
+		// TODO Handle situations where controllers[BVIBRATR_MIDI_NOTE] changed before NOTE_OFF
+		if ((controllers[BVIBRATR_MIDI_NOTE] == note) || (controllers[BVIBRATR_MIDI_NOTE] == 128)) adsr.release();
 	}
 }
 
