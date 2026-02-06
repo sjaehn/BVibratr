@@ -12,6 +12,7 @@
 #@prefix state: <http://lv2plug.in/ns/ext/state#> .
 #@prefix work:  <http://lv2plug.in/ns/ext/worker#> .
 #@prefix rsz: <http://lv2plug.in/ns/ext/resize-port#> .
+@prefix pprops: <http://lv2plug.in/ns/ext/port-props#> .
 @prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
 
 <http://www.jahnichen.de/sjaehn#me>
@@ -373,4 +374,16 @@
                 lv2:minimum 0.0 ;
                 lv2:maximum 0.5 ;
                 rdfs:comment "Amount of additional tremolo. The tremolo is synchronized with the vibrato.";
-        ] .
+        ] , 
+        
+        [
+		a lv2:OutputPort , lv2:ControlPort ;
+		lv2:index 27 ;
+		lv2:symbol "latency" ;
+		lv2:name "latency";
+		lv2:minimum 0 ;
+		lv2:maximum 192000 ;
+                #lv2:designation lv2:latency ;
+		lv2:portProperty lv2:reportsLatency , lv2:integer;
+		units:unit units:frame ;
+	] .

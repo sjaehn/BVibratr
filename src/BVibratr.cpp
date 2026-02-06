@@ -17,6 +17,7 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	audio_in_2 (nullptr),
 	audio_out_1 (nullptr),
 	audio_out_2 (nullptr),
+	latency_port(nullptr),
 	map (nullptr),
 	adsr(0, 0, 1, 0, ADSR<double>::INVSQR),
 	osc1(),
@@ -74,6 +75,11 @@ void BVibratr::connect_port (uint32_t port, void *data)
 			{
 				controller_ports[port - BVIBRATR_NR_PORTS] = static_cast<float*>(data);
 			}
+
+			else if (port == BVIBRATR_NR_PORTS + BVIBRATR_LATENCY) 
+			{
+				latency_port = static_cast<float*>(data);
+			}
 	}
 }
 
@@ -88,8 +94,10 @@ void BVibratr::run (uint32_t n_samples)
 	// Check if all ports are connected
 	if ((!midi_in) || (!audio_in_1) || (!audio_in_2) || (!audio_out_1) || (!audio_out_2)) return;
 	for (int i = 0; i < BVIBRATR_NR_CONTROLLERS; ++i) if (!controller_ports[i]) return;
+	if (!latency_port) return;
 
 	// Update controllers
+	*(latency_port) = buffer_offset;
 	for (int i = 0; i < BVIBRATR_NR_CONTROLLERS; ++i) 
 	{
 		const float value = controller_limits[i].validate(*controller_ports[i]);

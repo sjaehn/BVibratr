@@ -5,8 +5,8 @@
 enum BVibratrPorts
 {
 	BVIBRATR_MIDI_IN			= 0,
-	BVIBRATR_AUDIO_IN_1		= 1,
-	BVIBRATR_AUDIO_IN_2		= 2,
+	BVIBRATR_AUDIO_IN_1			= 1,
+	BVIBRATR_AUDIO_IN_2			= 2,
 	BVIBRATR_AUDIO_OUT_1		= 3,
 	BVIBRATR_AUDIO_OUT_2		= 4,
 	BVIBRATR_NR_PORTS			= 5
@@ -17,7 +17,7 @@ enum BVibratrPorts
 // BVibratrPorts::BVIBRATR_PORTS
 enum BVibratrControllers
 {
-	BVIBRATR_BYPASS			= 0,
+	BVIBRATR_BYPASS				= 0,
 	BVIBRATR_DRY_WET			= 1,
 	BVIBRATR_MIDI_CHANNEL		= 2,
 	BVIBRATR_MIDI_NOTE			= 3,
@@ -39,7 +39,9 @@ enum BVibratrControllers
 	BVIBRATR_OSC3_MODE			= 19,
 	BVIBRATR_OSC3_WAVEFORM		= 20,
 	BVIBRATR_TREMOLO			= 21,
-	BVIBRATR_NR_CONTROLLERS	= 22
+	BVIBRATR_NR_CONTROLLERS		= 22,
+
+	BVIBRATR_LATENCY			= 22	// Output controller!
 };
 
 enum BVibratrOscModes

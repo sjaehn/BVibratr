@@ -45,6 +45,7 @@ private:
 	float* audio_out_1;
 	float* audio_out_2;
 	std::array<const float*, BVIBRATR_NR_CONTROLLERS> controller_ports;
+	float* latency_port;
 
 	// Optional map feature
 	LV2_URID_Map* map;

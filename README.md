@@ -122,11 +122,11 @@ request or notifying me (issue report, e-mail, ...).
 
 * Bypass, dry/wet
 * Enable trigger on any MIDI key 
+* Report plugin latency to host
 
 
 ## TODOs
 
-* Report plugin latency to host
 * Click-safe change of osc mode
 * Select channels using checkboxes
 * Used-defined waveforms
