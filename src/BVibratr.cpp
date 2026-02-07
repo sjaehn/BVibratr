@@ -97,7 +97,7 @@ void BVibratr::run (uint32_t n_samples)
 {
 	// Check if all ports are connected
 	if ((!midi_in) || (!audio_in_1) || (!audio_in_2) || (!audio_out_1) || (!audio_out_2)) return;
-	for (int i = 0; i < BVIBRATR_NR_CONTROLLERS; ++i) if (!controller_ports[i]) return;
+	for (const float* c : controller_ports) if (!c) return;
 	if (!latency_port) return;
 
 	// Update controllers
