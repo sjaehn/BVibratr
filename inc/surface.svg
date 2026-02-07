@@ -28,8 +28,8 @@
      inkscape:document-units="px"
      showgrid="false"
      inkscape:zoom="1.0116647"
-     inkscape:cx="480.39632"
-     inkscape:cy="215.98065"
+     inkscape:cx="284.6793"
+     inkscape:cy="174.46492"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -78,13 +78,13 @@
        style="font-size:32px;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);display:inline;fill:#ffffff;stroke:none;stroke-width:4;stroke-dashoffset:0.2"><tspan
          x="18.898438"
          y="57.657087"
-         id="tspan12"><tspan
+         id="tspan11"><tspan
            style="font-size:42.6667px;font-family:'Good Times';-inkscape-font-specification:'Good Times'"
-           id="tspan2">B.</tspan><tspan
+           id="tspan1">B.</tspan><tspan
            style="font-family:'Good Times';-inkscape-font-specification:'Good Times'"
-           id="tspan3">V</tspan><tspan
+           id="tspan9">V</tspan><tspan
            style="font-family:'Good Times';-inkscape-font-specification:'Good Times'"
-           id="tspan4">  BRATR</tspan></tspan></text>
+           id="tspan10">  BRATR</tspan></tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.80375px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-dashoffset:0.755906"
@@ -196,13 +196,13 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-dashoffset:0.755906"
-       x="58.162827"
+       x="55.516994"
        y="29.668274"
        id="text6"><tspan
          sodipodi:role="line"
          id="tspan6"
          style="stroke-width:0;stroke-dasharray:none"
-         x="58.162827"
+         x="55.516994"
          y="29.668274">OSC 1</tspan></text>
     <text
        xml:space="preserve"
@@ -229,13 +229,13 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-dashoffset:0.755906"
-       x="163.99615"
+       x="161.35033"
        y="29.668274"
        id="text6-1"><tspan
          sodipodi:role="line"
          id="tspan6-1"
          style="stroke-width:0;stroke-dasharray:none"
-         x="163.99615"
+         x="161.35033"
          y="29.668274">OSC 3</tspan></text>
     <text
        xml:space="preserve"
@@ -251,24 +251,24 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-dashoffset:0.755906"
-       x="111.07949"
+       x="108.43365"
        y="29.668274"
        id="text6-0"><tspan
          sodipodi:role="line"
          id="tspan6-6"
          style="stroke-width:0;stroke-dasharray:none"
-         x="111.07949"
+         x="108.43365"
          y="29.668274">OSC 2</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-dashoffset:0.755906"
-       x="137.40553"
+       x="134.7597"
        y="5.7234612"
        id="text6-0-5"><tspan
          sodipodi:role="line"
          id="tspan6-6-7"
          style="stroke-width:0;stroke-dasharray:none"
-         x="137.40553"
+         x="134.7597"
          y="5.7234612">midi</tspan></text>
     <text
        xml:space="preserve"
@@ -316,7 +316,7 @@
          y="98.369972">D</tspan></text>
     <g
        id="g5"
-       transform="translate(-1.5875)">
+       transform="matrix(0.74722055,0,0,0.89451273,6.4473613,1.4163706)">
       <rect
          style="fill:#ffffff;stroke:none;stroke-width:0;stroke-dashoffset:0.755906"
          id="rect3"
@@ -327,13 +327,6 @@
       <g
          id="g7"
          transform="matrix(1.2579651,0,0,0.99632665,-10.623242,18.622128)">
-        <ellipse
-           style="fill:#ffffff;stroke:#800033;stroke-width:0.472669;stroke-dasharray:none;stroke-dashoffset:0.755906;stroke-opacity:1"
-           id="path7"
-           cx="31.466843"
-           cy="-15.23233"
-           rx="1.317637"
-           ry="3.005137" />
         <g
            id="g4"
            transform="matrix(0.06232244,0,0,0.08985304,39.207448,-18.054241)">
@@ -392,6 +385,11 @@
              sodipodi:open="true"
              transform="scale(-1,1)" />
         </g>
+        <path
+           style="fill:#ffffff;stroke:none;stroke-width:0.191825;stroke-dashoffset:0.755906"
+           d="m 30.662059,-17.548042 c 0.295238,-0.890188 1.180952,-0.890188 1.47619,0 0.295238,0.890189 0.590476,2.225471 0.295238,3.560753 -0.295238,1.335282 0,5.4894942 0,6.6764113 v 0.8901883 1.3352823 h -2.066666 v -1.3352825 -0.8901881 c 0,-1.1127348 0.295238,-4.8960353 0,-6.6764113 -0.295238,-1.780376 0,-2.670564 0.295238,-3.560753 z"
+           id="path1"
+           sodipodi:nodetypes="zzzzzcczzzz" />
       </g>
     </g>
     <text

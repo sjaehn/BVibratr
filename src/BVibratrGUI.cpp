@@ -12,7 +12,7 @@
 #include "BWidgets/BWidgets/Label.hpp"
 #include "BWidgets/BWidgets/Supports/ValueTransferable.hpp"
 #include "BWidgets/BWidgets/Supports/ValueableTyped.hpp"
-
+#include "BWidgets/BWidgets/TextButton.hpp"
 #include "BWidgets/BWidgets/Widget.hpp"
 #include "MIDI_CC.hpp"
 #include "Ports.hpp"
@@ -37,11 +37,11 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	bypassLabel (820, 60, 60, 20, BDICT ("Bypass"), URID ("/ctlabel")),
 	bypassButton (840, 30, 20, 20, 2, true, false, URID ("/redbutton"), BDICT ("Bypass")),
 	drywetLabel (880, 60, 60, 20, BDICT ("Dry/wet"), URID ("/ctlabel")),
-	drywetDial (890, 20, 40, 40, 1.0, 0.0, 1.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Dry/wet")),
-	midiChannelLabel(520, 40, 50, 20, BDICT("Channel") + ":", URID("/label")),
-	midiChannelWidget (580, 40, 40, 20, {/* To be filled later */}, 1, URID("/menu")),
-	midiNoteLabel (650, 40, 40, 20, BDICT("Note") + ":", URID("/label")),
-	midiNoteCombobox(700, 40, 80, 20, {/* To be filled later */}, 1, URID("/menu")),
+	drywetDial (885, 15, 50, 50, 1.0, 0.0, 1.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Dry/wet")),
+	midiChannelLabel(510, 20, 50, 20, BDICT("Channel") + ":", URID("/label")),
+	midiChannelWidget (0, 20, 80, 20, 0.1, 0, 0xFFFF, 1.0),
+	midiNoteLabel (720, 20, 40, 20, BDICT("Note") + ":", URID("/label")),
+	midiNoteCombobox(720, 40, 70, 20, {/* To be filled later */}, 1, URID("/menu")),
 	depthIsCcLabel (20, 120, 60, 20, BDICT("Use") + " CC:", URID("/label")),
 	depthIsCcCombobox(20, 140, 160, 20, midiCcNames, 1, URID("/menu")),
 	depthLabel (50, 250, 100, 20, BDICT("Depth"), URID("/ctlabel")),
@@ -108,9 +108,8 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	controllerWidgets[BVIBRATR_TREMOLO] = &tremoloDial;
 
 	// Configure widgets
-	for (int i = 1; i <= 16; ++i) midiChannelWidget.addItem(std::to_string(i));
-	midiChannelWidget.addItem(BDICT("None"));
-
+	for (int i = 0; i < 16; ++i) midiChannelBoxes[i] = new BWidgets::TextButton(510 + (i % 8) * 25, 40 + int(i / 8) * 25, 20, 20, std::to_string(i + 1), true, false, URID("/button"));
+	
 	const std::array<const std::string, 12> keys {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 	for (int i = 0; i < 128; ++i) midiNoteCombobox.addItem(std::to_string(i) + " - " + keys[i % 12] + std::to_string(static_cast<int>(i / 12) - 1));
 	midiNoteCombobox.addItem(BDICT("Any"));
@@ -141,6 +140,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	tremoloDial.setClickable(false);
 	tremoloDial.setScrollable(true);
 
+	midiChannelWidget.hide();
 	depthScreen.hide();
 	osc2Screen1.show();
 	osc2Screen2.show();
@@ -154,6 +154,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 
 	// Set callbacks
 	for (BWidgets::Widget* c : controllerWidgets) c->setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::valueChangedCallback);
+	for (BWidgets::TextButton* m : midiChannelBoxes) m->setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::midiChannelsChangedCallback);
 	//helpButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::helpButtonClickedCallback);
 	//ytButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::ytButtonClickedCallback);
 
@@ -162,6 +163,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	mContainer.add(&bypassLabel);
 	mContainer.add(&drywetLabel);
 	mContainer.add(&midiChannelLabel);
+	for (BWidgets::TextButton* m : midiChannelBoxes) mContainer.add(m);
 	mContainer.add(&midiNoteLabel);
 	mContainer.add(&depthIsCcLabel);
 	mContainer.add(&depthLabel);
@@ -191,7 +193,10 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 
 }
 
-BVibratrGUI::~BVibratrGUI() {}
+BVibratrGUI::~BVibratrGUI() 
+{
+	for (BWidgets::TextButton* m : midiChannelBoxes) delete m;
+}
 
 void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t format, const void* buffer)
 {
@@ -242,17 +247,17 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 		const uint32_t idx = port_index - BVIBRATR_NR_PORTS;
 		const float* pval = static_cast<const float*> (buffer);
 
-		// Comboboxes which require translation
+		// Special case midi channels
 		if (idx == BVIBRATR_MIDI_CHANNEL)
 		{
-			// TODO enable bitwise selection of each channel. For now, translate to a single channel
-			if (*pval == 0) midiChannelWidget.setValue(17);
-			else
-			{
-				const uint32_t ch = std::log2(*pval) + 1;
-				midiChannelWidget.setValue(ch);
-			}
+			midiChannelWidget.setValue(*pval);
+			const uint32_t ival = static_cast<uint32_t>(*pval);
+
+			// And bitwise selection of each channel.
+			for (int i = 0; i < 16; ++i) midiChannelBoxes[i]->setValue(ival & (1 << i));
 		}
+
+		// Comboboxes which require translation
 		else if ((idx == BVIBRATR_MIDI_NOTE) || (idx == BVIBRATR_DEPTH_IS_CC))
 		{
 			BWidgets::ComboBox* combobox = dynamic_cast<BWidgets::ComboBox*>(controllerWidgets[idx]);
@@ -514,14 +519,7 @@ void BVibratrGUI::valueChangedCallback (BEvents::Event* event)
 	if (idx < BVIBRATR_NR_CONTROLLERS)
 	{
 		// Comboboxes which require translation
-		if (idx == BVIBRATR_MIDI_CHANNEL)
-		{
-			const size_t combobox_idx = ui->midiChannelWidget.getValue();
-			const uint32_t ch_bits = (combobox_idx == 17 ? 0 : (1 << static_cast<const uint32_t>(combobox_idx - 1)));
-			value = ch_bits;
-		}
-
-		else if ((idx == BVIBRATR_MIDI_NOTE) || (idx == BVIBRATR_DEPTH_IS_CC)) 
+		if ((idx == BVIBRATR_MIDI_NOTE) || (idx == BVIBRATR_DEPTH_IS_CC)) 
 		{
 			BWidgets::ComboBox* combobox = dynamic_cast<BWidgets::ComboBox*>(widget);
 			if (combobox)
@@ -608,6 +606,35 @@ void BVibratrGUI::valueChangedCallback (BEvents::Event* event)
 		ui->write_function(ui->controller, BVIBRATR_NR_PORTS + idx, sizeof(float), 0, &value);
 	}
 	
+}
+
+void BVibratrGUI::midiChannelsChangedCallback (BEvents::Event* event)
+{
+	
+	if (!event) return;
+
+	BWidgets::Widget* widget = event->getWidget ();
+	if (!widget) return;
+
+	BWidgets::TextButton* textButton = dynamic_cast<BWidgets::TextButton*>(widget);
+	if (!textButton) return;
+
+	BVibratrGUI* ui = dynamic_cast<BVibratrGUI*> (widget->getMainWindow());
+	if (!ui) return;
+
+	// Identify widget
+	for (int i = 0; i < 16; ++i)
+	{
+		if (textButton == ui->midiChannelBoxes[i])
+		{
+			const uint32_t ival = 1 << i;
+			uint32_t mval = ui->midiChannelWidget.getValue();
+			mval &= (~ival) & mval;								// Delete bit
+			mval |= textButton->getValue() * ival;				// Set bit or not
+			ui->midiChannelWidget.setValue(mval);
+			break;
+		}
+	}
 }
 
 /*

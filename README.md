@@ -124,11 +124,11 @@ request or notifying me (issue report, e-mail, ...).
 * Enable trigger on any MIDI key 
 * Report plugin latency to host
 * Click-safe change of osc mode
+* Select channels using checkboxes
 
 
 ## TODOs
 
-* Select channels using checkboxes
 * Used-defined waveforms
 * Internationalization
 * Presets
