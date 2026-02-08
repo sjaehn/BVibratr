@@ -42,7 +42,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	midiChannelWidget (0, 20, 80, 20, 0.1, 0, 0xFFFF, 1.0),
 	midiNoteLabel (720, 20, 40, 20, BDICT("Note") + ":", URID("/label")),
 	midiNoteCombobox(720, 40, 70, 20, {/* To be filled later */}, 1, URID("/menu")),
-	depthIsCcLabel (20, 120, 60, 20, BDICT("Use") + " CC:", URID("/label")),
+	depthIsCcLabel (20, 120, 100, 20, BDICT("Use") + " CC:", URID("/label")),
 	depthIsCcCombobox(20, 140, 160, 20, midiCcNames, 1, URID("/menu")),
 	depthLabel (50, 250, 100, 20, BDICT("Depth"), URID("/ctlabel")),
 	depthDial (50, 160, 100, 100, 0.0, 0.0, 50.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Depth")),
