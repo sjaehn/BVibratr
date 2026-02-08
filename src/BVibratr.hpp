@@ -3,7 +3,7 @@
 
 #include <array>
 #include "ADSR.hpp"
-#include "LFO.hpp"
+#include "Oscx3.hpp"
 #include "LinearFader.hpp"
 #include "RingBuffer.hpp"
 
@@ -59,13 +59,12 @@ private:
 
 	// Internals
 	ADSR<double> adsr;
-	LFO<double> osc1, osc2, osc3;
+	Oscx3<double> oscx3; 
 	uint8_t note;							// Last NOTE_ON note (or >= 0x80 for none)
 	double depth_cc;
 	RingBuffer<float> buffer_1;
 	RingBuffer<float> buffer_2;
 	size_t buffer_offset;
-	int osc1_mode, osc2_mode, osc3_mode;	// TODO Schedule change
 	double depth;
 	LinearFader<double> shift;				// Temporal shift (vibrato)
 	LinearFader<float> amp;					// Volume change (tremolo)

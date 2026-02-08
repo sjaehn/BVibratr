@@ -20,9 +20,7 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	latency_port(nullptr),
 	map (nullptr),
 	adsr(0, 0, 1, 0, ADSR<double>::INVSQR),
-	osc1(),
-	osc2(),
-	osc3(),
+	oscx3(samplerate),
 	note(0xFF),
 	depth_cc (1.0),
 	buffer_1(0x10000),
@@ -30,9 +28,6 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	buffer_offset((SQRT_12_2 - 1.0) *	// Up to 1 semitone
 					samplerate			// Up to 1 second phase length
 				 ),						// TODO report latency
-	osc1_mode(0),
-	osc2_mode(0),
-	osc3_mode(0),
 	depth(0.0),
 	shift(0.0, (SQRT_12_2 - 1.0)),	// Limit temporal shift to 1 semitone
 	amp(1.0f, 0.001f),
@@ -48,9 +43,9 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	buffer_1.fill(0.0f);
 	buffer_2.fill(0.0f);
 
-	osc1.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc1_restart, this);
-	osc2.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc2_restart, this);
-	osc3.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc3_restart, this);
+	oscx3.osc1.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc1_restart, this);
+	oscx3.osc2.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc2_restart, this);
+	oscx3.osc3.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc3_restart, this);
 }
 
 BVibratr::~BVibratr () {}
@@ -122,15 +117,15 @@ void BVibratr::run (uint32_t n_samples)
 				break;
 
 			case BVIBRATR_OSC1_WAVEFORM:
-				osc1.set_waveform(static_cast<LFO<double>::Waveform>(value));
+				oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(value));
 				break;
 
 			case BVIBRATR_OSC2_WAVEFORM:
-				osc2.set_waveform(static_cast<LFO<double>::Waveform>(value));
+				oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(value));
 				break;
 
 			case BVIBRATR_OSC3_WAVEFORM:
-				osc3.set_waveform(static_cast<LFO<double>::Waveform>(value));
+				oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(value));
 				break;
 
 			default:
@@ -165,17 +160,12 @@ void BVibratr::on_midi_note_on (const uint8_t channel, const uint8_t note, const
 								 controllers[BVIBRATR_DEPTH_SUSTAIN],
 							 	 controllers[BVIBRATR_DEPTH_RELEASE]);
 
-			osc1.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC1_WAVEFORM]));
-			osc1.set_frequency(controllers[BVIBRATR_OSC1_FREQ]);
-			osc2.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC2_WAVEFORM]));
-			osc2.set_frequency(controllers[BVIBRATR_OSC2_FREQ]);
-			osc3.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC3_WAVEFORM]));
-			osc3.set_frequency(controllers[BVIBRATR_OSC3_FREQ]);
+			oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC1_WAVEFORM]));
+			oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC2_WAVEFORM]));
+			oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC3_WAVEFORM]));
 
 			adsr.start();
-			osc1.start();
-			osc2.start();
-			osc3.start();
+			oscx3.start();
 
 			this->note = note;
 		}
@@ -211,9 +201,7 @@ void BVibratr::on_midi_cc (const uint8_t channel, const uint8_t cc, const uint8_
 				on_midi_note_off	(channel, 
 									 static_cast<uint8_t>(controllers[BVIBRATR_MIDI_NOTE]), 
 									 0);
-				osc1.stop();
-				osc2.stop();
-				osc3.stop();
+				oscx3.stop();
 				break;
 
 			default:
@@ -254,143 +242,52 @@ void BVibratr::on_midi (const uint8_t* const msg)
 void BVibratr::on_osc1_restart(LFO<double>& adsr, void* obj)
 {
 	BVibratr* plugin = static_cast<BVibratr*>(obj);
-	plugin->osc1_mode = plugin->controllers[BVIBRATR_OSC1_MODE];
+	plugin->oscx3.mode1 = static_cast<BVibratrOscModes>(plugin->controllers[BVIBRATR_OSC1_MODE]);
 }
 
 void BVibratr::on_osc2_restart(LFO<double>& adsr, void* obj)
 {
 	BVibratr* plugin = static_cast<BVibratr*>(obj);
-	plugin->osc2_mode = plugin->controllers[BVIBRATR_OSC2_MODE];
+	plugin->oscx3.mode2 = static_cast<BVibratrOscModes>(plugin->controllers[BVIBRATR_OSC2_MODE]);
 }
 
 void BVibratr::on_osc3_restart(LFO<double>& adsr, void* obj)
 {
 	BVibratr* plugin = static_cast<BVibratr*>(obj);
-	plugin->osc3_mode = plugin->controllers[BVIBRATR_OSC3_MODE];
+	plugin->oscx3.mode3 = static_cast<BVibratrOscModes>(plugin->controllers[BVIBRATR_OSC3_MODE]);
 }
 
 void BVibratr::play (uint32_t start, uint32_t end)
 {
 	const double sample_time = 1.0 / rate;
 
-	// Oscillator settings
-	const double osc1_freq = controllers[BVIBRATR_OSC1_FREQ];
-	const double osc2_amp = controllers[BVIBRATR_OSC2_AMP];
-	const double osc2_freq = controllers[BVIBRATR_OSC2_FREQ];
-	const double osc3_amp = controllers[BVIBRATR_OSC3_AMP];
-	const double osc3_freq = controllers[BVIBRATR_OSC3_FREQ];
-
-	const double amp_f = 1.0 +	((controllers[BVIBRATR_OSC2_MODE] == BVIBRATR_OSC_MODE_ADD) ? osc2_amp : 0.0) +
-								((controllers[BVIBRATR_OSC3_MODE] == BVIBRATR_OSC_MODE_ADD) ? osc3_amp : 0.0);
+	// Update oscillator settings
+	oscx3.amp1 = 1.0;
+	oscx3.freq1 = controllers[BVIBRATR_OSC1_FREQ];
+	oscx3.amp2 = controllers[BVIBRATR_OSC2_AMP];
+	oscx3.freq2 = controllers[BVIBRATR_OSC2_FREQ];
+	oscx3.amp3 = controllers[BVIBRATR_OSC3_AMP];
+	oscx3.freq3 = controllers[BVIBRATR_OSC3_FREQ];
 
 	for (uint32_t i = start; i < end; ++i)
 	{
-		double signal = 0.0;		// To be used for tremolo (amp)
-		double integral = 0.0;		// To be used for vibrato (shift)
+		double signal = 0.0;
+		double integral = 0.0;
 
 		// Set modes if adsr (and thus all lfos) is stopped
 		if (!adsr.is_active())
 		{
-			osc1_mode = controllers[BVIBRATR_OSC1_MODE];
-			osc2_mode = controllers[BVIBRATR_OSC2_MODE];
-			osc3_mode = controllers[BVIBRATR_OSC3_MODE];
+			oscx3.mode1 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC1_MODE]);
+			oscx3.mode2 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC2_MODE]);
+			oscx3.mode3 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC3_MODE]);
 		}
 
 		// Only run oscillators if adsr is active
 		else 
 		{
-			// Modulators
-			double osc1_freq_m = 1.0;	// Frequency multiplier, range [0.0, 2.0]
-			double osc1_phase_d = 0.0;	// Phase delta, range [-1.0, 1.0]
-			double osc1_amp_m = 1.0;	// Amplification multiplier, range [0.0, 1.0]
-
-			double osc2_freq_m = 1.0;
-			double osc2_phase_d = 0.0;
-			double osc2_amp_m = 1.0;
-
-			// Run osc3
-			osc3.set_frequency(osc3_freq);
-			osc3.run(sample_time);
-
-			switch(osc3_mode)
-			{
-				case BVIBRATR_OSC_MODE_ADD:	
-					signal += osc3_amp * osc3.get_value();
-					integral += osc3_amp * osc3.get_integral() * rate / osc3_freq;
-					break;
-
-				case BVIBRATR_OSC_MODE_FM1:
-					osc1_freq_m *= (1.0 - osc3_amp * osc3.get_value());
-					break;
-
-				case BVIBRATR_OSC_MODE_PM1:
-					osc1_phase_d += osc3_amp * osc3.get_value();
-					break;
-
-				case BVIBRATR_OSC_MODE_AM1:
-					osc1_amp_m *= (1.0 - 0.5 * osc3_amp * (1.0 + osc3.get_value()));
-					break;
-
-				case BVIBRATR_OSC_MODE_FM2:
-					osc2_freq_m *= (1.0 - osc3_amp * osc3.get_value());
-					break;
-
-				case BVIBRATR_OSC_MODE_PM2:
-					osc2_phase_d += osc3_amp * osc3.get_value();
-					break;
-
-				case BVIBRATR_OSC_MODE_AM2:
-					osc2_amp_m *= (1.0 - 0.5 * osc3_amp * (1.0 + osc3.get_value()));
-					break;
-
-				default:
-					break;
-			}
-
-			// Run osc2
-			osc2.set_frequency(osc2_freq_m * osc2_freq);
-			osc1.set_phase_shift(osc2_phase_d);
-			osc2.run(sample_time);
-
-			switch(osc2_mode)
-			{
-				case BVIBRATR_OSC_MODE_ADD:	
-					signal += osc2_amp_m * osc2_amp * osc2.get_value();
-					integral += osc2_amp_m * osc2_amp * osc2.get_integral() * rate / osc2_freq;
-					break;
-
-				case BVIBRATR_OSC_MODE_FM1:
-					osc1_freq_m *= (1.0 - osc2_amp_m * osc2_amp * osc2.get_value());
-					break;
-
-				case BVIBRATR_OSC_MODE_PM1:
-					osc1_phase_d += osc2_amp_m * osc2_amp * osc2.get_value();
-					break;
-
-				case BVIBRATR_OSC_MODE_AM1:
-					osc1_amp_m *= (1.0 - 0.5 * osc2_amp_m * osc2_amp * (1.0 + osc2.get_value()));
-					break;
-
-				default:
-					break;
-			}
-
-			// Run osc1
-			if (osc1_mode == BVIBRATR_OSC_MODE_LFO)
-			{
-				osc1.set_frequency(osc1_freq_m * osc1_freq);
-				osc1.set_phase_shift(osc1_phase_d);
-				osc1.run(sample_time);
-				signal += osc1_amp_m * osc1.get_value();
-				integral += osc1_amp_m * osc1.get_integral() * rate / osc1_freq;
-			}
-
-			else /* BVIBRATR_OSC_MODE_USER */ 
-			{}
-
-			// Scale signal and integral to not exceed 1.0
-			signal /= amp_f;
-			integral /= amp_f;
+			oscx3.run(sample_time);
+			signal = oscx3.get_value();
+			integral = oscx3.get_integral();
 
 			// Apply adsr
 			adsr.run(sample_time);

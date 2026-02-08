@@ -17,7 +17,7 @@
 #include "MIDI_CC.hpp"
 #include "Ports.hpp"
 #include "ADSR.hpp"
-#include "LFO.hpp"
+#include "Oscx3.hpp"
 #include "Limits.hpp"
 
 #define BVIBRATR_GUI_WIDTH 960
@@ -360,23 +360,25 @@ void BVibratrGUI::drawWaveform()
 	const double totalTime = attack + decay + 2.0 + release;
 
 	ADSR<double> adsr(attack, decay, sustain, release, ADSR<double>::INVSQR);
-	LFO<double> osc1(static_cast<LFO<double>::Waveform>(osc1WaveformCombobox.getValue()), osc1FreqDial.getValue());
-	LFO<double> osc2(static_cast<LFO<double>::Waveform>(osc2WaveformCombobox.getValue()), osc2FreqDial.getValue());
-	LFO<double> osc3(static_cast<LFO<double>::Waveform>(osc3WaveformCombobox.getValue()), osc3FreqDial.getValue());
+	Oscx3<double> oscx3(w);
+
+	oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(osc1WaveformCombobox.getValue()));
+	oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(osc2WaveformCombobox.getValue()));
+	oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(osc3WaveformCombobox.getValue()));
+
+	oscx3.mode1 = static_cast<BVibratrOscModes>(osc1ModeCombobox.getValue());
+	oscx3.mode2 = static_cast<BVibratrOscModes>(osc2ModeCombobox.getValue());
+	oscx3.mode3 = static_cast<BVibratrOscModes>(osc3ModeCombobox.getValue());
+
+	oscx3.amp3 = osc3AmpDial.getValue();
+	oscx3.freq3 = osc3FreqDial.getValue();
+	oscx3.amp2 = osc2AmpDial.getValue();
+	oscx3.freq2 = osc2FreqDial.getValue();
+	oscx3.amp1 = 1.0;
+	oscx3.freq1 = osc1FreqDial.getValue();
 
 	adsr.start();
-	osc1.start();
-	osc2.start();
-	osc3.start();
-
-	const double osc3_amp = osc3AmpDial.getValue();
-	const double osc3_freq = osc3FreqDial.getValue();
-	const double osc2_amp = osc2AmpDial.getValue();
-	const double osc2_freq = osc2FreqDial.getValue();
-	const double osc1_freq = osc1FreqDial.getValue();
-
-	const double amp_f = 1.0 +	((osc2ModeCombobox.getValue() == BVIBRATR_OSC_MODE_ADD) ? osc2_amp : 0.0) +
-								((osc3ModeCombobox.getValue() == BVIBRATR_OSC_MODE_ADD) ? osc3_amp : 0.0);
+	oscx3.start();
 
 	const double sampleTime = totalTime / w;		
 
@@ -386,96 +388,8 @@ void BVibratrGUI::drawWaveform()
 
 	for (double x = 0; x < w; ++x)
 	{
-		double signal = 0.0;
-
-		// Modulators
-		double osc1_freq_m = 1.0;	// Frequency multiplier, range [0.0, 2.0]
-		double osc1_phase_d = 0.0;	// Phase delta, range [-1.0, 1.0]
-		double osc1_amp_m = 1.0;	// Amplification multiplier, range [0.0, 1.0]
-
-		double osc2_freq_m = 1.0;
-		double osc2_phase_d = 0.0;
-		double osc2_amp_m = 1.0;
-
-		// Run osc3
-		osc3.set_frequency(osc3_freq);
-		osc3.run(sampleTime);
-
-		switch(osc3ModeCombobox.getValue())
-		{
-			case BVIBRATR_OSC_MODE_ADD:	
-				signal += osc3_amp * osc3.get_value();
-				break;
-
-			case BVIBRATR_OSC_MODE_FM1:
-				osc1_freq_m *= (1.0 - osc3_amp * osc3.get_value());
-				break;
-
-			case BVIBRATR_OSC_MODE_PM1:
-				osc1_phase_d += osc3_amp * osc3.get_value();
-				break;
-
-			case BVIBRATR_OSC_MODE_AM1:
-				osc1_amp_m *= (1.0 - 0.5 * osc3_amp * (1.0 + osc3.get_value()));
-				break;
-
-			case BVIBRATR_OSC_MODE_FM2:
-				osc2_freq_m *= (1.0 - osc3_amp * osc3.get_value());
-				break;
-
-			case BVIBRATR_OSC_MODE_PM2:
-				osc2_phase_d += osc3_amp * osc3.get_value();
-				break;
-
-			case BVIBRATR_OSC_MODE_AM2:
-				osc2_amp_m *= (1.0 - 0.5 * osc3_amp * (1.0 + osc3.get_value()));
-				break;
-
-			default:
-				break;
-		}
-
-		// Run osc2
-		osc2.set_frequency(osc2_freq_m * osc2_freq);
-		osc2.set_phase_shift(osc1_phase_d);
-		osc2.run(sampleTime);
-
-		switch(osc2ModeCombobox.getValue())
-		{
-			case BVIBRATR_OSC_MODE_ADD:	
-				signal += osc2_amp_m * osc2_amp * osc2.get_value();
-				break;
-
-			case BVIBRATR_OSC_MODE_FM1:
-				osc1_freq_m *= (1.0 - osc2_amp_m * osc2_amp * osc2.get_value());
-				break;
-
-			case BVIBRATR_OSC_MODE_PM1:
-				osc1_phase_d += osc2_amp_m * osc2_amp * osc2.get_value();
-				break;
-
-			case BVIBRATR_OSC_MODE_AM1:
-				osc1_amp_m *= (1.0 - 0.5 * osc2_amp_m * osc2_amp * (1.0 + osc2.get_value()));
-				break;
-
-			default:
-				break;
-		}
-
-		// Run osc1
-		if (osc1ModeCombobox.getValue() == BVIBRATR_OSC_MODE_LFO)
-		{
-			osc1.set_frequency(osc1_freq_m * osc1_freq);
-			osc1.set_phase_shift(osc1_phase_d);
-			osc1.run(sampleTime);
-			signal += osc1_amp_m * osc1.get_value();
-		}
-
-		else /* BVIBRATR_OSC_MODE_USER */ 
-		{}
-
-		// Scale signal and integral to not exceed 1.0
-		signal /= amp_f;
+		oscx3.run(sampleTime);
+		double signal = oscx3.get_value();
 
 		// Apply adsr
 		if ((adsr.getPhase() == adsr.SUSTAIN) && (adsr.getPhaseTime() > 2.0)) adsr.release();
