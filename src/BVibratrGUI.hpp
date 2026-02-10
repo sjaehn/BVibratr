@@ -10,6 +10,7 @@
 #include "BWidgets/BStyles/Status.hpp"
 #include "BWidgets/BStyles/Types/Border.hpp"
 #include "BWidgets/BStyles/Types/Color.hpp"
+#include "BWidgets/BWidgets/SymbolButton.hpp"
 #include "BWidgets/BWidgets/Widget.hpp"
 #include "BWidgets/BWidgets/Window.hpp"
 #include "BWidgets/BWidgets/Knob.hpp"
@@ -22,6 +23,7 @@
 #include "ValueHSlider.hpp"
 #include "Ports.hpp"
 #include "Urids.hpp"
+#include "WavetableWidget.hpp"
 
 #ifndef WWW_BROWSER_CMD
 #define WWW_BROWSER_CMD "x-www-browser"
@@ -89,6 +91,8 @@ private:
 	BWidgets::ComboBox osc1ModeCombobox;
 	BWidgets::Label osc1WaveformLabel;
 	BWidgets::ComboBox osc1WaveformCombobox;
+	BWidgets::SymbolButton loadWavetableButton;
+	WavetableWidget wavetableWidget;
 	BWidgets::Label osc2AmpLabel;
 	BDial osc2AmpDial;
 	BWidgets::Label osc2FreqLabel;

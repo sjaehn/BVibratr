@@ -12,6 +12,7 @@
 #include "BWidgets/BWidgets/Label.hpp"
 #include "BWidgets/BWidgets/Supports/ValueTransferable.hpp"
 #include "BWidgets/BWidgets/Supports/ValueableTyped.hpp"
+#include "BWidgets/BWidgets/Symbol.hpp"
 #include "BWidgets/BWidgets/TextButton.hpp"
 #include "BWidgets/BWidgets/Widget.hpp"
 #include "MIDI_CC.hpp"
@@ -19,9 +20,12 @@
 #include "ADSR.hpp"
 #include "Oscx3.hpp"
 #include "Limits.hpp"
+#include "WavetableWidget.hpp"
 
 #define BVIBRATR_GUI_WIDTH 960
 #define BVIBRATR_GUI_HEIGHT 460
+
+#define BVIBRATR_DEFAULT_WAVETABLE_FILE "inc/sine.wvt"
 
 
 BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *features, PuglNativeView parentWindow) :
@@ -54,9 +58,11 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	osc1FreqLabel (250, 250, 100, 20, BDICT("Frequency"), URID("/ctlabel")),
 	osc1FreqDial (250, 160, 100, 100, 1.0, 1.0, 20.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Frequency")),
 	osc1ModeLabel (210, 120, 90, 20, BDICT("Mode"), URID("/label")),
-	osc1ModeCombobox(210, 140, 90, 20, {BDICT("LFO"), BDICT("User-defined")}, 1, URID("/menu")),
+	osc1ModeCombobox(210, 140, 90, 20, {BDICT("LFO"), BDICT("Wavetable")}, 1, URID("/menu")),
 	osc1WaveformLabel (310, 120, 80, 20, BDICT("Waveform"), URID("/label")),
 	osc1WaveformCombobox(310, 140, 80, 20, {BDICT("Sine"), BDICT("Triangle"), BDICT("Square")}, 1, URID("/menu")),
+	loadWavetableButton(360, 140, 30, 20, BWidgets::Symbol::SymbolType::load, false, false, URID("/menu/button")),
+	wavetableWidget(310, 170, 80, 80, Wavetable<>(), URID ("/dial")),
 	osc2AmpLabel (420, 250, 80, 20, BDICT("Amplitude"), URID("/ctlabel")),
 	osc2AmpDial (420, 170, 80, 80, 0.0, 0.0, 1.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Amplitude")),
 	osc2FreqLabel (500, 250, 80, 20, BDICT("Frequency"), URID("/ctlabel")),
@@ -142,6 +148,8 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 
 	midiChannelWidget.hide();
 	depthScreen.hide();
+	loadWavetableButton.hide();
+	wavetableWidget.hide();
 	osc2Screen1.show();
 	osc2Screen2.show();
 	osc3Screen1.show();
@@ -149,6 +157,11 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 
 	adsrDisplay.createImage(BStyles::Status::normal);
 	waveformDisplay.createImage(BStyles::Status::normal);
+
+	//Set default wavetable
+	Wavetable<> wt;
+	wt.from_wvt(BVIBRATR_DEFAULT_WAVETABLE_FILE);
+	wavetableWidget.setWavetable(wt);
 
 	setTheme(theme);
 
@@ -171,6 +184,8 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	mContainer.add(&osc1FreqLabel);
 	mContainer.add(&osc1ModeLabel);
 	mContainer.add(&osc1WaveformLabel);
+	mContainer.add(&loadWavetableButton);
+	mContainer.add(&wavetableWidget);
 	mContainer.add(&osc2AmpLabel);
 	mContainer.add(&osc2FreqLabel);
 	mContainer.add(&osc2ModeLabel);
@@ -482,6 +497,31 @@ void BVibratrGUI::valueChangedCallback (BEvents::Event* event)
 			BWidgets::ComboBox* combobox = dynamic_cast<BWidgets::ComboBox*>(widget);
 			if	(combobox && (combobox->getValue() == controller_limits[BVIBRATR_DEPTH_IS_CC].max + 1)) ui->depthScreen.hide();
 			else ui->depthScreen.show();
+		}
+
+		else if (idx == BVIBRATR_OSC1_MODE)
+		{
+			BWidgets::ComboBox* combobox = dynamic_cast<BWidgets::ComboBox*>(widget);
+			if	(combobox && (combobox->getValue() == 1)) 
+			{
+				ui->osc1WaveformCombobox.show();
+				ui->osc1WaveformLabel.show();
+				ui->osc1FreqDial.moveTo(250, 160);
+				ui->osc1FreqDial.resize(100, 100);
+				ui->osc1FreqLabel.moveTo(250, 250);
+				ui->loadWavetableButton.hide();
+				ui->wavetableWidget.hide();
+			}
+			else 
+			{
+				ui->osc1WaveformCombobox.hide();
+				ui->osc1WaveformLabel.hide();
+				ui->osc1FreqDial.moveTo(210, 170);
+				ui->osc1FreqDial.resize(80, 80);
+				ui->osc1FreqLabel.moveTo(200, 250);
+				ui->loadWavetableButton.show();
+				ui->wavetableWidget.show();
+			}
 		}
 
 		else if (idx == BVIBRATR_OSC2_MODE)

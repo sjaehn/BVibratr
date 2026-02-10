@@ -130,8 +130,15 @@ request or notifying me (issue report, e-mail, ...).
 ## TODOs
 
 * Used-defined waveforms
+  * Show wavetables
+  * Wavetable file chooser
+  * Import wavetables from text files
+  * Import wavetables from wav
+  * Communicate wavetables beween UI and DSP
+  * Store and restore wavetables
 * Internationalization
 * Presets
+* Documentation
 * Multiple keys (later versions)
 
 
