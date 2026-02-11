@@ -195,7 +195,7 @@ inline void WavetableWidget::draw (const BUtilities::Area<>& area)
 
 	const size_t dim_i = wavetable_.get_total_frames();
 	const size_t dim_j = wavetable_.get_samples_per_frame();
-	if ((!dim_i) || (!dim_j)) return;
+	if ((wavetable_.get_total_samples() <= 1) || (dim_i < 1) || (dim_j < 1)) return;
 
 	cairo_t* cr = cairo_create (cairoSurface());
 
@@ -223,6 +223,18 @@ inline void WavetableWidget::draw (const BUtilities::Area<>& area)
 		const double ori_j = 0.5 - 0.5 * step_j * (dim_j);				// Origin of the wave
 		const double alpha = dim_i < h ? 0.667 : 0.667 * h / dim_i;		// Alpha channel
 
+		// Draw table
+		/*
+		cairo_move_to(cr, x0 + ori_j * w + d, y0 - ori_i * d + h);
+		cairo_line_to(cr, x0 + ori_j * w + d + w, y0 - ori_i * d + d + h);
+		cairo_line_to(cr, x0 + ori_j * w + w, y0 - ori_i * d + 2 * d + h);
+		cairo_line_to(cr, x0 + ori_j * w, y0 - ori_i * d + d + h);
+		cairo_close_path(cr);
+		cairo_set_source_rgba (cr, CAIRO_RGBA (getBgColors()[getStatus()]));
+		cairo_fill(cr);
+		*/
+		
+		// Draw waves
 		cairo_set_source_rgba (cr, CAIRO_RGB (getFgColors()[getStatus()]), alpha);
 
 		for (double i = dim_i - 1; i >= 0; --i)

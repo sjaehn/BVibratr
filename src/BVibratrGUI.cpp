@@ -3,10 +3,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <initializer_list>
 #include <string>
 #include "BWidgets/BEvents/Event.hpp"
 #include "BWidgets/BEvents/ExposeEvent.hpp"
+#include "BWidgets/BEvents/ValueChangeTypedEvent.hpp"
 #include "BWidgets/BUtilities/Dictionary.hpp"
 #include "BWidgets/BWidgets/ComboBox.hpp"
 #include "BWidgets/BWidgets/Label.hpp"
@@ -20,6 +22,7 @@
 #include "ADSR.hpp"
 #include "Oscx3.hpp"
 #include "Limits.hpp"
+#include "WavetableChooser.hpp"
 #include "WavetableWidget.hpp"
 
 #define BVIBRATR_GUI_WIDTH 960
@@ -61,8 +64,11 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	osc1ModeCombobox(210, 140, 90, 20, {BDICT("LFO"), BDICT("Wavetable")}, 1, URID("/menu")),
 	osc1WaveformLabel (310, 120, 80, 20, BDICT("Waveform"), URID("/label")),
 	osc1WaveformCombobox(310, 140, 80, 20, {BDICT("Sine"), BDICT("Triangle"), BDICT("Square")}, 1, URID("/menu")),
-	loadWavetableButton(360, 140, 30, 20, BWidgets::Symbol::SymbolType::load, false, false, URID("/menu/button")),
-	wavetableWidget(310, 170, 80, 80, Wavetable<>(), URID ("/dial")),
+	loadWavetableButton(220, 250, 30, 20, BWidgets::Symbol::SymbolType::load, false, false, URID("/menu/button")),
+	editWavetableButton(260, 250, 30, 20, BWidgets::Symbol::SymbolType::setup, false, false, URID("/menu/button")),
+	wavetableChooser(nullptr),
+	noWavetableLabel (0, 30, 90, 20, BDICT("No Data"), URID("/bglabel")),
+	wavetableWidget(210, 165, 90, 80, Wavetable<>(), URID ("/dial")),
 	osc2AmpLabel (420, 250, 80, 20, BDICT("Amplitude"), URID("/ctlabel")),
 	osc2AmpDial (420, 170, 80, 80, 0.0, 0.0, 1.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Amplitude")),
 	osc2FreqLabel (500, 250, 80, 20, BDICT("Frequency"), URID("/ctlabel")),
@@ -149,6 +155,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	midiChannelWidget.hide();
 	depthScreen.hide();
 	loadWavetableButton.hide();
+	editWavetableButton.hide();
 	wavetableWidget.hide();
 	osc2Screen1.show();
 	osc2Screen2.show();
@@ -158,20 +165,25 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	adsrDisplay.createImage(BStyles::Status::normal);
 	waveformDisplay.createImage(BStyles::Status::normal);
 
-	//Set default wavetable
+	// Set default wavetable
 	Wavetable<> wt;
-	wt.from_wvt(BVIBRATR_DEFAULT_WAVETABLE_FILE);
+	try {wt.from_wvt(BVIBRATR_DEFAULT_WAVETABLE_FILE);}
+	catch (std::exception& exc) {std::cerr << exc.what() << std::endl;}
 	wavetableWidget.setWavetable(wt);
+	if (wt.size() <= 1) noWavetableLabel.show();
+	else noWavetableLabel.hide();
 
 	setTheme(theme);
 
 	// Set callbacks
 	for (BWidgets::Widget* c : controllerWidgets) c->setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::valueChangedCallback);
 	for (BWidgets::TextButton* m : midiChannelBoxes) m->setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::midiChannelsChangedCallback);
+	loadWavetableButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::loadWavetableClickedCallback);
 	//helpButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::helpButtonClickedCallback);
 	//ytButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::ytButtonClickedCallback);
 
 	// Pack widgets
+	wavetableWidget.add(&noWavetableLabel);
 	for (BWidgets::Widget* c : controllerWidgets) mContainer.add(c);
 	mContainer.add(&bypassLabel);
 	mContainer.add(&drywetLabel);
@@ -185,6 +197,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	mContainer.add(&osc1ModeLabel);
 	mContainer.add(&osc1WaveformLabel);
 	mContainer.add(&loadWavetableButton);
+	mContainer.add(&editWavetableButton);
 	mContainer.add(&wavetableWidget);
 	mContainer.add(&osc2AmpLabel);
 	mContainer.add(&osc2FreqLabel);
@@ -211,6 +224,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 BVibratrGUI::~BVibratrGUI() 
 {
 	for (BWidgets::TextButton* m : midiChannelBoxes) delete m;
+	if (wavetableChooser) delete wavetableChooser;
 }
 
 void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t format, const void* buffer)
@@ -510,16 +524,18 @@ void BVibratrGUI::valueChangedCallback (BEvents::Event* event)
 				ui->osc1FreqDial.resize(100, 100);
 				ui->osc1FreqLabel.moveTo(250, 250);
 				ui->loadWavetableButton.hide();
+				ui->editWavetableButton.hide();
 				ui->wavetableWidget.hide();
 			}
 			else 
 			{
 				ui->osc1WaveformCombobox.hide();
 				ui->osc1WaveformLabel.hide();
-				ui->osc1FreqDial.moveTo(210, 170);
+				ui->osc1FreqDial.moveTo(310, 170);
 				ui->osc1FreqDial.resize(80, 80);
-				ui->osc1FreqLabel.moveTo(200, 250);
+				ui->osc1FreqLabel.moveTo(300, 250);
 				ui->loadWavetableButton.show();
+				ui->editWavetableButton.show();
 				ui->wavetableWidget.show();
 			}
 		}
@@ -588,6 +604,64 @@ void BVibratrGUI::midiChannelsChangedCallback (BEvents::Event* event)
 			ui->midiChannelWidget.setValue(mval);
 			break;
 		}
+	}
+}
+
+void BVibratrGUI::loadWavetableClickedCallback (BEvents::Event* event)
+{
+	if (!event) return;
+
+	BWidgets::Widget* widget = event->getWidget ();
+	if (!widget) return;
+
+	BWidgets::SymbolButton* symbolButton = dynamic_cast<BWidgets::SymbolButton*>(widget);
+	if (!symbolButton) return;
+
+	BVibratrGUI* ui = dynamic_cast<BVibratrGUI*> (widget->getMainWindow());
+	if (!ui) return;
+
+	if (!ui->wavetableChooser)
+	{
+		ui->wavetableChooser = new WavetableChooser(URID("/menu"), "Wavetables");
+		ui->wavetableChooser->confirmIfExists = false;
+		ui->wavetableChooser->setCloseable(false);
+		ui->wavetableChooser->setCallbackFunction(BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::wavetableFileSelectedCallback);
+		ui->wavetableChooser->moveTo(320, 110);
+		ui->add(ui->wavetableChooser);
+	}
+
+	else 
+	{
+		delete ui->wavetableChooser;
+		ui->wavetableChooser = nullptr;
+	}
+}
+
+void BVibratrGUI::wavetableFileSelectedCallback (BEvents::Event* event)
+{
+	if (!event) return;
+
+	BEvents::ValueChangeTypedEvent<std::string>* sev = dynamic_cast<BEvents::ValueChangeTypedEvent<std::string>*>(event);
+	if (!sev) return;
+
+	BWidgets::Widget* widget = sev->getWidget ();
+	if (!widget) return;
+
+	WavetableChooser* wtc = dynamic_cast<WavetableChooser*>(widget);
+	if (!wtc) return;
+
+	BVibratrGUI* ui = dynamic_cast<BVibratrGUI*> (widget->getMainWindow());
+	if (!ui) return;
+
+	if (ui->wavetableChooser)
+	{
+		if (sev->getValue() != "")
+		{
+			Wavetable wt = wtc->wavetable.getWavetable();
+			if (wt.size() > 1) ui->wavetableWidget.setWavetable(wt);
+		}
+		delete ui->wavetableChooser;
+		ui->wavetableChooser = nullptr;
 	}
 }
 

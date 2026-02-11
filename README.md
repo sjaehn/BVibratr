@@ -125,17 +125,21 @@ request or notifying me (issue report, e-mail, ...).
 * Report plugin latency to host
 * Click-safe change of osc mode
 * Select channels using checkboxes
+* Used-defined waveforms
+  * Import wavetables from text files
+  * Show wavetables
+  * Wavetable file chooser
 
 
 ## TODOs
 
 * Used-defined waveforms
-  * Show wavetables
-  * Wavetable file chooser
-  * Import wavetables from text files
-  * Import wavetables from wav
-  * Communicate wavetables beween UI and DSP
+  * Communicate wavetables from UI to DSP (and vice versa)
   * Store and restore wavetables
+  * Calculate integrals of pitch wavetables
+  * Wavetable oscillator
+  * Import wavetables from wav
+  * Simple tools for wavetable manipulation
 * Internationalization
 * Presets
 * Documentation

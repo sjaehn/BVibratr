@@ -3,9 +3,8 @@
 
 #include <cmath>
 #include <cstddef>
-#include <exception>
 #include <fstream>
-#include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include "BWidgets/BUtilities/sto.hpp"
@@ -51,8 +50,9 @@ public:
     (7) The wavetable data shall continue from the beginning after the last 
     sample without breaks.
     @param s        Data string.
+    @param spf      Samples per frame.
      */
-    void from_string(const std::string& s);
+    void from_string(const std::string& s, size_t spf = 128);
 
     /**
     Loads a .wvt text file and parses its content by from_string() to a 
@@ -69,6 +69,11 @@ public:
      */
     template<typename T2>
     void from_samples(const T2* samples, const size_t frame_sz, const size_t total_sz);
+
+    /**
+    Clears the wavetable. Only one single sample with a value of 0 will remain.
+     */
+    void clear();
 
     /**
     Gets the total number of samples of the %Wavetable. A valid %Wavetable
@@ -127,12 +132,12 @@ template<class T> inline Wavetable<T>::Wavetable() :
     spf_(1)
 {}
 
-template<class T> void inline Wavetable<T>::from_string(const std::string& s)
+template<class T> void inline Wavetable<T>::from_string(const std::string& s, size_t spf)
 {
     if (s.empty())
     {
         this->clear();
-        set_samples_per_frame(spf_);
+        set_samples_per_frame(spf);
         return;
     }
 
@@ -163,29 +168,20 @@ template<class T> void inline Wavetable<T>::from_string(const std::string& s)
         if (spf_idx != std::string::npos)
         {
             std::string value_str = line.substr(spf_idx + 18);
-            try {spf_ = std::stoi(value_str);}
-            catch (std::exception& exc) {std::cerr << "Error: " << exc.what() << std::endl;}
+            spf = std::stoi(value_str);
             continue;
         }
 
         // String to value
-        try
-        {
-            const float value = BUtilities::sto<T>(line);
-            n_data.push_back(value);
-        }
-        catch (std::exception& exc)
-        {
-            std::cerr << "Error: " << exc.what() << std::endl;
-            return;
-        }
+        const float value = BUtilities::sto<T>(line);
+        n_data.push_back(value);
 
         // EOS
         if (n_idx == std::string::npos) break;
     }
 
-    // Validate spf_
-    set_samples_per_frame(spf_);
+    // Validate spf
+    set_samples_per_frame(spf);
 
     // Copy data
     std::vector<T>::operator=(n_data);
@@ -196,7 +192,7 @@ template<class T> void inline Wavetable<T>::from_wvt(const std::string& path)
     std::string s;
     std::ifstream file(path);
 
-    if (!file.is_open()) std::cerr << "IOError: Can't open " << path << std::endl;
+    if (!file.is_open()) throw std::invalid_argument("Can't open file " + path + ".");
     else
     {
         std::string line;
@@ -205,6 +201,13 @@ template<class T> void inline Wavetable<T>::from_wvt(const std::string& path)
         file.close();
         from_string(s);
     } 
+}
+
+template<class T> void inline Wavetable<T>::clear()
+{
+    std::vector<T>::clear();
+    this->push_back(0);
+    spf_= 1;
 }
 
 template<class T>
@@ -257,8 +260,8 @@ template<class T> inline T Wavetable<T>::at_rel(T pos) const
 template<class T> inline T Wavetable<T>::interpolate_(const size_t frame, const T rp) const
 {
     const T base = floor(rp * get_samples_per_frame());
-    const size_t idx1 = static_cast<size_t>(base) % get_total_samples();
-    const size_t idx2 = (idx1 + 1) % get_samples_per_frame();
+    const size_t idx1 = (frame * get_samples_per_frame() + static_cast<size_t>(base)) % get_total_samples();
+    const size_t idx2 = (idx1 + 1) % get_total_samples();
     const T f = rp * get_samples_per_frame() - base;
     const T val1 = this->operator[](idx1);
     const T val2 = this->operator[](idx2);

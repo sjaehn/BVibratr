@@ -1,6 +1,7 @@
 #ifndef BVIBRATRGUI_HPP_
 #define BVIBRATRGUI_HPP_
 
+#include <cairo/cairo.h>
 #include <initializer_list>
 #include <lv2/ui/ui.h>
 #include <lv2/atom/atom.h>
@@ -23,6 +24,7 @@
 #include "ValueHSlider.hpp"
 #include "Ports.hpp"
 #include "Urids.hpp"
+#include "WavetableChooser.hpp"
 #include "WavetableWidget.hpp"
 
 #ifndef WWW_BROWSER_CMD
@@ -54,6 +56,8 @@ private:
 	void drawWaveform ();
 	static void valueChangedCallback (BEvents::Event* event);
 	static void midiChannelsChangedCallback (BEvents::Event* event);
+	static void loadWavetableClickedCallback (BEvents::Event* event);
+	static void wavetableFileSelectedCallback (BEvents::Event* event);
 	//static void helpButtonClickedCallback (BEvents::Event* event);
 	//static void ytButtonClickedCallback (BEvents::Event* event);
 
@@ -92,6 +96,9 @@ private:
 	BWidgets::Label osc1WaveformLabel;
 	BWidgets::ComboBox osc1WaveformCombobox;
 	BWidgets::SymbolButton loadWavetableButton;
+	BWidgets::SymbolButton editWavetableButton;
+	WavetableChooser* wavetableChooser;
+	BWidgets::Label noWavetableLabel;
 	WavetableWidget wavetableWidget;
 	BWidgets::Label osc2AmpLabel;
 	BDial osc2AmpDial;
@@ -124,6 +131,7 @@ private:
 	// Definition of styles
 	BStyles::ColorMap fgColors = BStyles::ColorMap {{{1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {0.5, 0.5, 0.5, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap txColors = BStyles::ColorMap {{{0.8, 0.8, 0.8, 1.0}, {1.0, 1.0, 1.0, 1.0}, {0.5, 0.5, 0.5, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
+	BStyles::ColorMap trColors = BStyles::ColorMap {{{0.8, 0.8, 0.8, 0.5}, {1.0, 1.0, 1.0, 0.5}, {0.5, 0.5, 0.5, 0.5}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap bgColors = BStyles::ColorMap {{{0.2, 0.05, 0.1, 1.0}, {0.4, 0.2, 0.3, 1.0}, {0.1, 0.03, 0.05, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap btColors = BStyles::ColorMap {{{0.0, 0.0, 0.0, 1.0}, {0.4, 0.2, 0.3, 1.0}, {0.0, 0.00, 0.00, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap noColors = BStyles::ColorMap {{{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}}};
@@ -140,6 +148,16 @@ private:
 		"Sans", 
 		CAIRO_FONT_SLANT_NORMAL, 
 		CAIRO_FONT_WEIGHT_NORMAL, 
+		12.0,
+		BStyles::Font::TextAlign::center, 
+		BStyles::Font::TextVAlign::middle
+	);
+
+	BStyles::Font bgFont =	BStyles::Font 
+	(
+		"Sans", 
+		CAIRO_FONT_SLANT_NORMAL, 
+		CAIRO_FONT_WEIGHT_BOLD, 
 		12.0,
 		BStyles::Font::TextAlign::center, 
 		BStyles::Font::TextVAlign::middle
@@ -249,13 +267,23 @@ private:
 			})
 		},
 
-		// clabel
+		// ctlabel
 		{
 			URID ("/ctlabel"), 
 			BStyles::Style
 			({	
 				{BURID(BSTYLES_STYLEPROPERTY_FONT_URI), BUtilities::makeAny<BStyles::Font>(defaultFont)},
 				{BURID(BSTYLES_STYLEPROPERTY_TXCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(txColors)}
+			})
+		},
+
+		// bglabel
+		{
+			URID ("/bglabel"), 
+			BStyles::Style
+			({	
+				{BURID(BSTYLES_STYLEPROPERTY_FONT_URI), BUtilities::makeAny<BStyles::Font>(bgFont)},
+				{BURID(BSTYLES_STYLEPROPERTY_TXCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(trColors)}
 			})
 		},
 
