@@ -5,6 +5,7 @@
 // Utilities
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <lv2/atom/util.h>
 #include <lv2/midi/midi.h>
 
@@ -35,6 +36,7 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 {
 	// Init controllers
 	controller_ports.fill(nullptr);
+	controllers.fill(std::numeric_limits<float>::infinity());	// Ensure change once ports connected
 
 	// Map urids
     urids.init (features, map);
@@ -97,39 +99,61 @@ void BVibratr::run (uint32_t n_samples)
 
 	// Update controllers
 	*(latency_port) = buffer_offset;
+	const float o_midi_channels = controllers[BVIBRATR_MIDI_CHANNEL];
 	for (int i = 0; i < BVIBRATR_NR_CONTROLLERS; ++i) 
 	{
 		const float value = controller_limits[i].validate(*controller_ports[i]);
-		controllers[i] = value;
-		switch (i)
+		
+		// ... but only if value changed
+		if (controllers[i] != value)
 		{
-			case BVIBRATR_BYPASS:
-			case BVIBRATR_DRY_WET:
-				mix.set((1.0f - controllers[BVIBRATR_BYPASS]) * controllers[BVIBRATR_DRY_WET]);
-				break;
+			controllers[i] = value;
 
-			case BVIBRATR_DEPTH_IS_CC:
-				depth =	((value == 128) ? (0.01 /* cents */ * controllers[BVIBRATR_DEPTH]) : depth_cc);
-				break;
+			switch (i)
+			{
+				case BVIBRATR_BYPASS:
+				case BVIBRATR_DRY_WET:
+					mix.set((1.0f - controllers[BVIBRATR_BYPASS]) * controllers[BVIBRATR_DRY_WET]);
+					break;
 
-			case BVIBRATR_DEPTH:
-				if (controllers[BVIBRATR_DEPTH_IS_CC] == 128) depth = 0.01 /* cents */ * value;
-				break;
+				case BVIBRATR_DEPTH_IS_CC:
+					depth =	((value == 128) ? (0.01 /* cents */ * controllers[BVIBRATR_DEPTH]) : depth_cc);
+					break;
 
-			case BVIBRATR_OSC1_WAVEFORM:
-				oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(value));
-				break;
+				case BVIBRATR_DEPTH:
+					if (controllers[BVIBRATR_DEPTH_IS_CC] == 128) depth = 0.01 /* cents */ * value;
+					break;
 
-			case BVIBRATR_OSC2_WAVEFORM:
-				oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(value));
-				break;
+				case BVIBRATR_OSC1_WAVEFORM:
+					oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(value));
+					break;
 
-			case BVIBRATR_OSC3_WAVEFORM:
-				oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(value));
-				break;
+				case BVIBRATR_OSC2_WAVEFORM:
+					oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(value));
+					break;
 
-			default:
-				break;
+				case BVIBRATR_OSC3_WAVEFORM:
+					oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(value));
+					break;
+
+				default:
+					break;
+			}
+		}
+	}
+
+	// Analysis after all ports updated
+	if (o_midi_channels != controllers[BVIBRATR_MIDI_CHANNEL])
+	{
+		if (controllers[BVIBRATR_MIDI_CHANNEL] == 0)
+		{
+			start();
+			this->note = 0xFF;
+		}
+		else if (o_midi_channels == 0)
+		{
+			adsr.stop();
+			this->note = 0xFF;
 		}
 	}
 
@@ -149,24 +173,28 @@ void BVibratr::run (uint32_t n_samples)
     play (last_frame, n_samples);
 }
 
+void BVibratr::start()
+{
+	adsr.set_parameters	(controllers[BVIBRATR_DEPTH_ATTACK],
+						 controllers[BVIBRATR_DEPTH_DECAY],
+						 controllers[BVIBRATR_DEPTH_SUSTAIN],
+						 controllers[BVIBRATR_DEPTH_RELEASE]);
+
+	oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC1_WAVEFORM]));
+	oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC2_WAVEFORM]));
+	oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC3_WAVEFORM]));
+
+	adsr.start();
+	oscx3.start();
+}
+
 void BVibratr::on_midi_note_on (const uint8_t channel, const uint8_t note, const uint8_t velocity)
 {
 	if (static_cast<uint16_t>(controllers[BVIBRATR_MIDI_CHANNEL]) & (1 << channel))
 	{
 		if ((controllers[BVIBRATR_MIDI_NOTE] == note) || (controllers[BVIBRATR_MIDI_NOTE] == 128))
 		{
-			adsr.set_parameters	(controllers[BVIBRATR_DEPTH_ATTACK],
-								 controllers[BVIBRATR_DEPTH_DECAY],
-								 controllers[BVIBRATR_DEPTH_SUSTAIN],
-							 	 controllers[BVIBRATR_DEPTH_RELEASE]);
-
-			oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC1_WAVEFORM]));
-			oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC2_WAVEFORM]));
-			oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC3_WAVEFORM]));
-
-			adsr.start();
-			oscx3.start();
-
+			start();
 			this->note = note;
 		}
 	}

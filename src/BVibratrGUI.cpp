@@ -45,10 +45,11 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	bypassButton (840, 30, 20, 20, 2, true, false, URID ("/redbutton"), BDICT ("Bypass")),
 	drywetLabel (880, 60, 60, 20, BDICT ("Dry/wet"), URID ("/ctlabel")),
 	drywetDial (885, 15, 50, 50, 1.0, 0.0, 1.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Dry/wet")),
-	midiChannelLabel(510, 20, 50, 20, BDICT("Channel") + ":", URID("/label")),
-	midiChannelWidget (0, 20, 80, 20, 0.1, 0, 0xFFFF, 1.0),
+	midiChannelLabel(510, 20, 200, 20, BDICT("Channel") + ":", URID("/label")),
+	midiChannelWidget (0, 20, 0, 0, 0.1, 0, 0xFFFF, 1.0),
 	midiNoteLabel (720, 20, 40, 20, BDICT("Note") + ":", URID("/label")),
 	midiNoteCombobox(720, 40, 70, 20, {/* To be filled later */}, 1, URID("/menu")),
+	midiNoteScreen (710, 10, 80, 60, URID("/screen")),
 	depthIsCcLabel (20, 120, 100, 20, BDICT("Use") + " CC:", URID("/label")),
 	depthIsCcCombobox(20, 140, 160, 20, midiCcNames, 1, URID("/menu")),
 	depthLabel (50, 250, 100, 20, BDICT("Depth"), URID("/ctlabel")),
@@ -153,6 +154,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	tremoloDial.setScrollable(true);
 
 	midiChannelWidget.hide();
+	midiNoteScreen.hide();
 	depthScreen.hide();
 	loadWavetableButton.hide();
 	editWavetableButton.hide();
@@ -190,6 +192,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	mContainer.add(&midiChannelLabel);
 	for (BWidgets::TextButton* m : midiChannelBoxes) mContainer.add(m);
 	mContainer.add(&midiNoteLabel);
+	mContainer.add(&midiNoteScreen);
 	mContainer.add(&depthIsCcLabel);
 	mContainer.add(&depthLabel);
 	mContainer.add(&depthScreen);
@@ -503,7 +506,21 @@ void BVibratrGUI::valueChangedCallback (BEvents::Event* event)
 		if ((idx >= BVIBRATR_DEPTH_ATTACK) && (idx <= BVIBRATR_DEPTH_RELEASE)) ui->drawAdsr();
 		if ((idx >= BVIBRATR_DEPTH_ATTACK) && (idx <= BVIBRATR_OSC3_WAVEFORM)) ui->drawWaveform();
 
-
+		if (idx == BVIBRATR_MIDI_CHANNEL)
+		{
+			if (ui->midiChannelWidget.getValue() == 0) 
+			{
+				ui->midiChannelLabel.setText(BDICT("Channel") + ": " + 
+											 BDICT("None") + " - " + 
+											 BDICT("Autoplay on"));
+				ui->midiNoteScreen.show();
+			}
+			else 
+			{
+				ui->midiChannelLabel.setText(BDICT("Channel") + ":");
+				ui->midiNoteScreen.hide();
+			}
+		}
 
 		// Controllers which show / hide other controllers
 		if (idx == BVIBRATR_DEPTH_IS_CC)

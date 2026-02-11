@@ -30,6 +30,7 @@ public:
 	void deactivate ();
 
 private:
+	void start();
 	void on_midi_note_on (const uint8_t channel, const uint8_t note, const uint8_t velocity);
 	void on_midi_note_off (const uint8_t channel, const uint8_t note, const uint8_t velocity);
 	void on_midi_cc (const uint8_t channel, const uint8_t cc, const uint8_t param);

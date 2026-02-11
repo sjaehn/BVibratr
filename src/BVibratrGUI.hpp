@@ -80,6 +80,7 @@ private:
 	std::array<BWidgets::TextButton*, 16> midiChannelBoxes;
 	BWidgets::Label midiNoteLabel;
 	BWidgets::ComboBox midiNoteCombobox;
+	BWidgets::Widget midiNoteScreen;
 	BWidgets::Label depthIsCcLabel;
 	BWidgets::ComboBox depthIsCcCombobox;
 	BWidgets::Label depthLabel;

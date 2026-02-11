@@ -102,8 +102,7 @@ the instrument. Unless you want to get the B.Vibratr effect on a specific
 instrument or channel.
 
 You can select one or multiple channels to trigger B.Vibrator to play. 
-However, if you select **no** channel, then B.Vibratr is permanently running
-(TODO). 
+However, if you select **no** channel, then B.Vibratr is permanently running. 
 
 
 ### Step 3: The vibrato waveforms 
@@ -205,6 +204,7 @@ request or notifying me (issue report, e-mail, ...).
   * Import wavetables from text files
   * Show wavetables
   * Wavetable file chooser
+* Autoplay (no trigger channels set)
 * Documentation (incomplete)
 
 
