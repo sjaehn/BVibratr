@@ -206,6 +206,7 @@ request or notifying me (issue report, e-mail, ...).
   * Wavetable file chooser
 * Autoplay (no trigger channels set)
 * Documentation (incomplete)
+* Waweform: saw
 
 
 ## TODOs

@@ -5,7 +5,7 @@ template <class T>
 class LFO
 {
 public:
-    enum Waveform {SINE = 1, TRIANGLE, SQUARE};
+    enum Waveform {SINE= 1, TRIANGLE, SQUARE, SAW};
 
     enum Event 
     {
@@ -213,6 +213,8 @@ template <class T> inline T LFO<T>::get_value () const
 
         case SQUARE:    return ((x < 0.25) || (x>= 0.75)) ? 1.0 : -1.0;
 
+        case SAW:       return 2.0 * x - 2.0 * (x >= 0.5);
+
         default:        return 0.0;
     }
 }
@@ -243,6 +245,9 @@ template <class T> inline T LFO<T>::get_integral () const
                                 1.0 - 4.0 * (x - 0.25) :
                                 -1.0 + 4.0 * (x - 0.75)
                               );
+
+        case SAW:       return (x < 0.5) ?  std::pow(2.0 * x, 2) : 2.0 * (1.0 - x);
+
         default:        return 0.0;
     }
 }
