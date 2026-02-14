@@ -108,7 +108,7 @@ public:
 
     @note This method doesn't allocate any memory, and doesn't throw any 
     exception, and doesn't use any locks. Parsing a C string containing data
-    for some 1,000,000 samples may take less than 1 millisecond, depending on
+    for some 10,000 samples may take less than 1 millisecond, depending on
     the system. Nevertheless, calling this method should be omited within the
     realtime thread, at least for large size wavetables.
 
