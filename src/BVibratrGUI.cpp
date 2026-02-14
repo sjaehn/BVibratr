@@ -394,13 +394,17 @@ void BVibratrGUI::drawWaveform()
 	ADSR<double> adsr(attack, decay, sustain, release, ADSR<double>::INVSQR);
 	Oscx3<double> oscx3(w);
 
-	oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(osc1WaveformCombobox.getValue()));
+	oscx3.mode1 = BVIBRATR_OSC_MODE_LFO;
+	oscx3.mode2 = static_cast<BVibratrOscModes>(osc2ModeCombobox.getValue());
+	oscx3.mode3 = static_cast<BVibratrOscModes>(osc3ModeCombobox.getValue());
+
+	oscx3.osc1.set_waveform((osc1ModeCombobox.getValue() == BVIBRATR_OSC_MODE_USER) ?
+							LFO<double>::WAVETABLE :
+							static_cast<LFO<double>::Waveform>(osc1WaveformCombobox.getValue()));
 	oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(osc2WaveformCombobox.getValue()));
 	oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(osc3WaveformCombobox.getValue()));
 
-	oscx3.mode1 = static_cast<BVibratrOscModes>(osc1ModeCombobox.getValue());
-	oscx3.mode2 = static_cast<BVibratrOscModes>(osc2ModeCombobox.getValue());
-	oscx3.mode3 = static_cast<BVibratrOscModes>(osc3ModeCombobox.getValue());
+	if (osc1ModeCombobox.getValue() == BVIBRATR_OSC_MODE_USER) oscx3.osc1.set_wavetable_data(wavetableWidget.getWavetable());
 
 	oscx3.amp3 = osc3AmpDial.getValue();
 	oscx3.freq3 = osc3FreqDial.getValue();
@@ -675,7 +679,11 @@ void BVibratrGUI::wavetableFileSelectedCallback (BEvents::Event* event)
 		if (sev->getValue() != "")
 		{
 			Wavetable wt = wtc->wavetable.getWavetable();
-			if (wt.size() > 1) ui->wavetableWidget.setWavetable(wt);
+			if (wt.size() > 1) 
+			{
+				ui->wavetableWidget.setWavetable(wt);
+				ui->drawWaveform();
+			}
 		}
 		delete ui->wavetableChooser;
 		ui->wavetableChooser = nullptr;

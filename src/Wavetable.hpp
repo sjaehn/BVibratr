@@ -105,6 +105,13 @@ public:
     SAMPLES_PER_FRAME. Otherwise overhanging data are ignored.
     (7) The wavetable data shall continue from the beginning after the last 
     sample without breaks.
+
+    @note This method doesn't allocate any memory, and doesn't throw any 
+    exception, and doesn't use any locks. Parsing a C string containing data
+    for some 1,000,000 samples may take less than 1 millisecond, depending on
+    the system. Nevertheless, calling this method should be omited within the
+    realtime thread, at least for large size wavetables.
+
     @param c        Data as C string.
     @param spf      Samples per frame.
      */
@@ -127,6 +134,10 @@ public:
     SAMPLES_PER_FRAME. Otherwise overhanging data are ignored.
     (7) The wavetable data shall continue from the beginning after the last 
     sample without breaks.
+
+    @note Calling this method is as realtime-safe (or unsafe) as its C 
+    string variant from_string(c, spf).
+
     @param s        Data string.
     @param spf      Samples per frame.
      */

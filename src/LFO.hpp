@@ -1,11 +1,15 @@
+#include "MiniGC.hpp"
+#include "Wavetable.hpp"
 #include <cmath>
+#include <cstddef>
 #include <functional>
+#include <new>
 
 template <class T>
 class LFO
 {
 public:
-    enum Waveform {SINE= 1, TRIANGLE, SQUARE, SAW};
+    enum Waveform {WAVETABLE = 0, SINE, TRIANGLE, SQUARE, SAW};
 
     enum Event 
     {
@@ -25,6 +29,16 @@ public:
     @param freq     Frequency.
     */
     LFO (const Waveform waveform, const T freq);
+
+    ~LFO();
+
+    /**
+    Makes some boring but important background work, like wavetable garbage
+    collection.
+
+    @note Call this frequently from OUTSIDE of realtime threads.
+     */
+    void worker();
 
     /**
     Sets the LFO frequency.
@@ -51,6 +65,19 @@ public:
     @return LFO waveform
     */
     Waveform get_waveform () const;
+
+    /**
+    Sets the wavetable data and also calculates an integral wavetable. This 
+    will take effect immediately if the LFO phase is 0.0. Otherwise the 
+    wavetable change is scheduled until the start of the next phase. TThis 
+    method does NOT schedule a switch to the wavetable mode.
+    
+    @note This method allocates heap memory to copy the wavetable data and
+    to create an integral wavetable. Thus, this method is NOT realtime-safe.
+
+    @param wavetable    Reference to wavetable.
+     */
+    void set_wavetable_data(const Wavetable<T>& wavetable);
 
     /**
     Sets a phase offset.
@@ -115,12 +142,24 @@ public:
 protected:
     Waveform waveform_;
     Waveform scheduled_waveform_;
+    Wavetable<T> *wavetable_, *scheduled_wavetable_;
+    Wavetable<T> *integral_wavetable_, *scheduled_integral_wavetable_;
+    MiniGC<const Wavetable<T>, 32> wavetable_gc_;
     T freq_;
     T phase_;
     T shift_;
     bool active_;
 
     std::array<std::pair<std::function<void(LFO<T>&, void*)>, void*>, STOP + 1> callbacks_;
+
+    /**
+    Tries to apply scheduled wavetable data. In this case, the pointers to the
+    current wavetable (and integral wavetable) are replaced by the scheduled
+    pointers. Just before, the pointers to the previos wavetable (and integral
+    wavetable) are sent to the garbage collector to be removed in the next
+    worker cycle.
+     */
+    void apply_scheduled_wavetable_data_();
 
     /**
     Distributes the events of this objects by calling the respective callback function together with a reference to 
@@ -142,12 +181,29 @@ template <class T> inline LFO<T>::LFO () : LFO (SINE, 1.0) {}
 template <class T> inline LFO<T>::LFO (const Waveform waveform, const T freq) : 
     waveform_(waveform), 
     scheduled_waveform_(waveform), 
+    wavetable_(nullptr),
+    scheduled_wavetable_(nullptr),
+    integral_wavetable_(nullptr),
+    scheduled_integral_wavetable_(nullptr),
     freq_(freq), 
     phase_(0.0), 
     shift_(0.0),
     active_(false)
 {
     callbacks_.fill(std::pair<std::function<void(LFO<T>&, void*)>, void*>(&defaultCallback_, nullptr));
+}
+
+template <class T> inline LFO<T>::~LFO()
+{
+    if (wavetable_) delete wavetable_;
+    if (scheduled_wavetable_) delete scheduled_wavetable_;
+    if (integral_wavetable_) delete integral_wavetable_;
+    if (scheduled_integral_wavetable_) delete scheduled_integral_wavetable_;
+}
+
+template <class T> inline void LFO<T>::worker()
+{
+    wavetable_gc_.purge();
 }
 
 template <class T> inline void LFO<T>::set_frequency (const T freq) {freq_ = freq;}
@@ -161,6 +217,56 @@ template <class T> inline void LFO<T>::set_waveform (const Waveform waveform)
 }
     
 template <class T> inline typename LFO<T>::Waveform LFO<T>::get_waveform () const {return waveform_;}
+
+template <class T> inline void LFO<T>::set_wavetable_data(const Wavetable<T>& wavetable)
+{
+    // (Other) wavetable already scheduled: delete
+    if (scheduled_wavetable_) delete scheduled_wavetable_;
+    if (scheduled_integral_wavetable_) delete scheduled_integral_wavetable_;
+    scheduled_wavetable_ = scheduled_integral_wavetable_ = nullptr;
+
+    // Create new scheduled wavetable and copy data
+    scheduled_wavetable_ = new (std::nothrow) Wavetable<T>();
+    if (!scheduled_wavetable_) return;  // TODO error
+    *scheduled_wavetable_ = wavetable;
+
+    // New scheduled integral
+    scheduled_integral_wavetable_ = new (std::nothrow) Wavetable<T>();
+    if (!scheduled_integral_wavetable_) 
+    {
+        delete scheduled_wavetable_;
+        scheduled_wavetable_ = nullptr;
+        // TODO error
+        return;
+    }
+
+    // ... and calculate integral
+    const size_t total_samples = wavetable.get_total_samples();
+    T integral = 0;
+    T max = wavetable[0];
+    T min = wavetable[0];
+    for (size_t i = 0; i < total_samples; ++i)
+    {
+        integral += wavetable[i];
+        (*scheduled_integral_wavetable_)[i] = integral;
+        if (integral > max) max = integral;
+        else if (integral < min) min = integral;
+    }
+
+    // ... normalize (as integral values outside [-1, 1] are not allowed here)
+    const T rng = max - min;
+    if (rng > 2.0)
+    {
+        for (size_t i = 0; i < total_samples; ++i)
+        {
+            (*scheduled_integral_wavetable_)[i] = -1.0 + ((*scheduled_integral_wavetable_)[i] - min) / rng;
+        }
+    }
+
+    // Phase start: Apply scheduled wavetables
+    worker();
+    if (phase_ == 0.0) apply_scheduled_wavetable_data_();
+}
 
 template <class T> inline void LFO<T>::set_phase_shift (const T shift) {shift_ = shift;}
 
@@ -193,7 +299,12 @@ template <class T> inline void LFO<T>::run (const T time)
     }
 
     phase_ += time * freq_;
-    if (phase_ >= 1.0) phase_ = std::fmod(phase_, 1.0);
+    if ((waveform_ == WAVETABLE) && wavetable_)
+    {
+        if (phase_ >= wavetable_->get_total_frames()) phase_ = std::fmod(phase_, wavetable_->get_total_frames());
+    }
+        
+    else if (phase_ >= 1.0) phase_ = std::fmod(phase_, 1.0);
 }
 
 template <class T> inline T LFO<T>::get_value () const
@@ -201,9 +312,13 @@ template <class T> inline T LFO<T>::get_value () const
     const T x = phase_ + shift_ - floor(phase_ + shift_);
     switch (waveform_) 
     {
-        case SINE:     return -std::cos (2.0 * M_PI * x);
+        case WAVETABLE: return  wavetable_ ?
+                                wavetable_->at_rel(phase_ + shift_) : // Not x!
+                                0.0;
+        
+        case SINE:      return -std::cos (2.0 * M_PI * x);
 
-        case TRIANGLE: return x < 0.25 ? 
+        case TRIANGLE:  return x < 0.25 ? 
                               4.0 * x : 
                               (
                                 x < 0.75 ?
@@ -224,7 +339,11 @@ template <class T> inline T LFO<T>::get_integral () const
     const T x = phase_ + shift_ - floor(phase_ + shift_);
     switch (waveform_) 
     {
-        case SINE:     return std::sin (2.0 * M_PI * x);
+        case WAVETABLE: return  integral_wavetable_ ? 
+                                integral_wavetable_->at_rel(phase_ + shift_) :    // Not x!
+                                0.0;
+
+        case SINE:      return std::sin (2.0 * M_PI * x);
 
         case TRIANGLE:  {
                             const int sec = x * 4.0;
@@ -262,6 +381,21 @@ template <class T> void LFO<T>::setCallbackFunction(const typename LFO<T>::Event
 template <class T> void LFO<T>::removeCallbackFunction(const typename LFO<T>::Event event)
 {
     callbacks_[event] = std::pair<std::function<void(LFO<T>&, void*)>, void*>(&defaultCallback_, nullptr);
+}
+
+template <class T> void LFO<T>::apply_scheduled_wavetable_data_()
+{
+    if (scheduled_wavetable_ && ((!wavetable_) || wavetable_gc_.add(wavetable_)))
+    {
+        wavetable_ = scheduled_wavetable_;
+        scheduled_wavetable_ = nullptr;
+    }
+
+    if (scheduled_integral_wavetable_  && ((!integral_wavetable_) || wavetable_gc_.add(integral_wavetable_)))
+    {
+        integral_wavetable_ = scheduled_integral_wavetable_;
+        scheduled_integral_wavetable_ = nullptr;
+    }
 }
 
 template <class T> void LFO<T>::on_event_(const typename LFO<T>::Event event)
