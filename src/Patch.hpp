@@ -195,7 +195,7 @@ public:
 
     @todo           Only patch_Get and patch_Set supported yet. Extend!
      */
-    inline const uint64_t get_long(const LV2_Atom* atom) const
+    inline const uint64_t get_value_long(const LV2_Atom* atom) const
     {
         if ((!atom) || (atom->type != atom_Object)) return 0;
         const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object*>(atom);
@@ -215,7 +215,7 @@ public:
 
     @todo           Only patch_Get and patch_Set supported yet. Extend!
      */
-    inline const int32_t get_int(const LV2_Atom* atom) const
+    inline const int32_t get_value_int(const LV2_Atom* atom) const
     {
         if ((!atom) || (atom->type != atom_Object)) return 0;
         const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object*>(atom);
@@ -224,6 +224,157 @@ public:
         lv2_atom_object_get (obj, patch_value, &value, nullptr);
         if (!value) return 0;
         return reinterpret_cast<const LV2_Atom_Int*>(value)->body;
+    }
+
+    /**
+    Writes a Patch:Get request object into a provided forge buffer.
+    @param forge    Forge buffer (by reference).
+    @param subject  Patch subject.
+    @param property Patch property.
+    @return         Reference to the created Patch:Get object atom, or 0 if 
+                    failed.
+    */
+    inline LV2_Atom_Forge_Ref write_patch_Get(LV2_Atom_Forge& forge, const LV2_URID subject, const LV2_URID property)
+    {
+        LV2_Atom_Forge_Frame frame;
+        LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, patch_Get);
+        msg =  (msg &&
+                lv2_atom_forge_key(&forge, patch_subject) &&
+                lv2_atom_forge_urid(&forge, subject) &&
+                lv2_atom_forge_key(&forge, patch_property) &&
+                lv2_atom_forge_urid(&forge, property)) ? msg : 0;
+        lv2_atom_forge_pop(&forge, &frame);
+        return msg;
+    }
+
+    /**
+    Writes a Patch:Set Int object into a provided forge buffer.
+    @param forge    Forge buffer (by reference).
+    @param subject  Patch subject.
+    @param property Patch property.
+    @param value    Int value
+    @return         Reference to the created Patch:Set object atom, or 0 if 
+                    failed.
+    */
+    inline LV2_Atom_Forge_Ref write_patch_Set_Int(LV2_Atom_Forge& forge, const LV2_URID subject, const LV2_URID property, const int32_t value)
+    {
+        LV2_Atom_Forge_Frame frame;
+        LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, patch_Set);
+        msg =  (msg &&
+                lv2_atom_forge_key(&forge, patch_subject) &&
+                lv2_atom_forge_urid(&forge, subject) &&
+                lv2_atom_forge_key(&forge, patch_property) &&
+                lv2_atom_forge_urid(&forge, property) &&
+                lv2_atom_forge_key(&forge, patch_value) &&
+		        lv2_atom_forge_int(&forge, value)) ? msg : 0;
+        lv2_atom_forge_pop(&forge, &frame);
+        return msg;
+    }
+
+    /**
+    Writes a Patch:Set Long object into a provided forge buffer.
+    @param forge    Forge buffer (by reference).
+    @param subject  Patch subject.
+    @param property Patch property.
+    @param value    Long value
+    @return         Reference to the created Patch:Set object atom, or 0 if 
+                    failed.
+    */
+    inline LV2_Atom_Forge_Ref write_patch_Set_Long(LV2_Atom_Forge& forge, const LV2_URID subject, const LV2_URID property, const int64_t value)
+    {
+        LV2_Atom_Forge_Frame frame;
+        LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, patch_Set);
+        msg =  (msg &&
+                lv2_atom_forge_key(&forge, patch_subject) &&
+                lv2_atom_forge_urid(&forge, subject) &&
+                lv2_atom_forge_key(&forge, patch_property) &&
+                lv2_atom_forge_urid(&forge, property) &&
+                lv2_atom_forge_key(&forge, patch_value) &&
+		        lv2_atom_forge_long(&forge, value)) ? msg : 0;
+        lv2_atom_forge_pop(&forge, &frame);
+        return msg;
+    }
+
+    /**
+    Writes a Patch:Set Double object into a provided forge buffer.
+    @param forge    Forge buffer (by reference).
+    @param subject  Patch subject.
+    @param property Patch property.
+    @param value    Double value
+    @return         Reference to the created Patch:Set object atom, or 0 if 
+                    failed.
+    */
+    inline LV2_Atom_Forge_Ref write_patch_Set_Double(LV2_Atom_Forge& forge, const LV2_URID subject, const LV2_URID property, const double value)
+    {
+        LV2_Atom_Forge_Frame frame;
+        LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, patch_Set);
+        msg =  (msg &&
+                lv2_atom_forge_key(&forge, patch_subject) &&
+                lv2_atom_forge_urid(&forge, subject) &&
+                lv2_atom_forge_key(&forge, patch_property) &&
+                lv2_atom_forge_urid(&forge, property) &&
+                lv2_atom_forge_key(&forge, patch_value) &&
+		        lv2_atom_forge_double(&forge, value)) ? msg : 0;
+        lv2_atom_forge_pop(&forge, &frame);
+        return msg;
+    }
+
+    /**
+    Writes a Patch:Set Path object into a provided forge buffer.
+    @param forge    Forge buffer (by reference).
+    @param subject  Patch subject.
+    @param property Patch property.
+    @param len      String length of path.
+    @param path     C string. `path` need not be NULL terminated.
+    @return         Reference to the created Patch:Set object atom, or 0 if 
+                    failed.
+    */
+    inline LV2_Atom_Forge_Ref write_patch_Set_Path(LV2_Atom_Forge& forge, const LV2_URID subject, const LV2_URID property, const uint32_t len, const char* path)
+    {
+        LV2_Atom_Forge_Frame frame;
+        LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, patch_Set);
+        msg =  (msg &&
+                lv2_atom_forge_key(&forge, patch_subject) &&
+                lv2_atom_forge_urid(&forge, subject) &&
+                lv2_atom_forge_key(&forge, patch_property) &&
+                lv2_atom_forge_urid(&forge, property) &&
+                lv2_atom_forge_key(&forge, patch_value) &&
+		        lv2_atom_forge_path(&forge, path, len)) ? msg : 0;
+        lv2_atom_forge_pop(&forge, &frame);
+        return msg;
+    }
+
+    /**
+    Writes a Patch:Set Vector object into a provided forge buffer.
+    @param forge        Forge buffer (by reference).
+    @param subject      Patch subject.
+    @param property     Patch property.
+    @param child_size   Size of each child in bytes.
+    @param Child_type   Type of each child.
+    @param n_elems      Number of elements.
+    @param data         Pointer to data array.
+    @return         Reference to the created Patch:Set object atom, or 0 if 
+                    failed.
+    */
+    inline LV2_Atom_Forge_Ref write_patch_Set_Vector(LV2_Atom_Forge& forge, 
+                                                     const LV2_URID subject, 
+                                                     const LV2_URID property,
+                                                     const uint32_t child_size,
+                                                     const LV2_URID child_type,
+                                                     const uint32_t n_elems,
+                                                     const void* data)
+    {
+        LV2_Atom_Forge_Frame frame;
+        LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, patch_Set);
+        msg =  (msg &&
+                lv2_atom_forge_key(&forge, patch_subject) &&
+                lv2_atom_forge_urid(&forge, subject) &&
+                lv2_atom_forge_key(&forge, patch_property) &&
+                lv2_atom_forge_urid(&forge, property) &&
+                lv2_atom_forge_key(&forge, patch_value) &&
+		        lv2_atom_forge_vector(&forge, child_size, child_type, n_elems, data)) ? msg : 0;
+        lv2_atom_forge_pop(&forge, &frame);
+        return msg;
     }
 };
 

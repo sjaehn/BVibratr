@@ -345,17 +345,7 @@ void BVibratrGUI::sendWavetablePath(const std::string path)
 	lv2_atom_forge_init(&forge, map);
 	uint8_t obj_buf[1024];
 	lv2_atom_forge_set_buffer(&forge, obj_buf, sizeof(obj_buf));
-	LV2_Atom_Forge_Frame frame;
-	LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Set);
-	if (msg &&
-		lv2_atom_forge_key(&forge, urids.patch_subject) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr) &&
-		lv2_atom_forge_key(&forge, urids.patch_property) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable_path) &&
-		lv2_atom_forge_key(&forge, urids.patch_value) &&
-		lv2_atom_forge_path(&forge, path.c_str(), path.length() + 1)
-	) {} /* pass */
-	lv2_atom_forge_pop(&forge, &frame);
+	LV2_Atom_Forge_Ref msg = patch.write_patch_Set_Path(forge, urids.bvibratr, urids.bvibratr_wavetable_path, path.length() + 1, path.c_str());
 	LV2_Atom* atom = reinterpret_cast<LV2_Atom*>(msg);
 	if (msg) write_function(controller, BVIBRATR_CONTROL_IN, lv2_atom_total_size(atom), urids.atom_eventTransfer, atom);
 }
@@ -366,14 +356,7 @@ void BVibratrGUI::sendPatchGet()
 	lv2_atom_forge_init(&forge, map);
 	uint8_t obj_buf[256];
 	lv2_atom_forge_set_buffer(&forge, obj_buf, sizeof(obj_buf));
-	LV2_Atom_Forge_Frame frame;
-	LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Get);
-	if (msg &&
-		lv2_atom_forge_key(&forge, urids.patch_subject) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr) &&
-		lv2_atom_forge_key(&forge, urids.patch_property) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable)
-	) {} /* pass */
+	LV2_Atom_Forge_Ref msg = patch.write_patch_Get(forge, urids.bvibratr, urids.bvibratr_wavetable_data);
 	LV2_Atom* atom = reinterpret_cast<LV2_Atom*>(msg);
 	if (msg) write_function(controller, BVIBRATR_CONTROL_IN, lv2_atom_total_size(atom), urids.atom_eventTransfer, atom);
 }

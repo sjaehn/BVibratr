@@ -225,9 +225,9 @@ void BVibratr::run (uint32_t n_samples)
 		{
 			notify = false;
 			if (lv2_atom_forge_frame_time(&forge, 0) &&
-				forge_patch_wavetable(forge, wt->size(), &((*wt)[0])) &&
+				patch.write_patch_Set_Vector(forge, urids.bvibratr, urids.bvibratr_wavetable_data, sizeof(double), urids.atom_Double, wt->size(), &((*wt)[0])) &&
 				lv2_atom_forge_frame_time(&forge, 0) &&
-				forge_patch_spf(forge, wt->get_samples_per_frame()))
+				patch.write_patch_Set_Int(forge, urids.bvibratr, urids.bvibratr_wavetable_spf, wt->get_samples_per_frame()))
 			{} /* pass */
 		}
 	}
@@ -418,38 +418,6 @@ void BVibratr::play (uint32_t start, uint32_t end)
 	}
 }
 
-LV2_Atom_Forge_Ref BVibratr::forge_patch_wavetable(LV2_Atom_Forge& forge, const uint32_t n_elems, const double* data)
-{
-	LV2_Atom_Forge_Frame frame;
-	const LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Set);
-	if (msg &&
-		lv2_atom_forge_key(&forge, urids.patch_subject) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr) &&
-		lv2_atom_forge_key(&forge, urids.patch_property) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable_data) &&
-		lv2_atom_forge_key(&forge, urids.patch_value) &&
-		lv2_atom_forge_vector(&forge, sizeof(double), urids.atom_Double, n_elems, data)) 
-	{} /* pass */
-	lv2_atom_forge_pop(&forge, &frame);
-	return msg;
-}
-
-LV2_Atom_Forge_Ref BVibratr::forge_patch_spf(LV2_Atom_Forge& forge, const uint32_t spf)
-{
-	LV2_Atom_Forge_Frame frame;
-	const LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Set);
-	if (msg &&
-		lv2_atom_forge_key(&forge, urids.patch_subject) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr) &&
-		lv2_atom_forge_key(&forge, urids.patch_property) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable_spf) &&
-		lv2_atom_forge_key(&forge, urids.patch_value) &&
-		lv2_atom_forge_int(&forge, spf)
-	) {} /* pass */
-	lv2_atom_forge_pop(&forge, &frame);
-	return msg;
-}
-
 LV2_State_Status BVibratr::state_save (LV2_State_Store_Function store, LV2_State_Handle handle, uint32_t flags, const LV2_Feature* const* features)
 {
 	// Use worker_wt
@@ -507,7 +475,7 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 		lv2_atom_forge_init(&forge, map);
 		uint8_t buf[256];
 		lv2_atom_forge_set_buffer(&forge, buf, 256);
-		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(forge_patch_spf(forge, value));
+		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(patch.write_patch_Set_Int(forge, urids.bvibratr, urids.bvibratr_wavetable_spf, value));
 		if (atom) schedule->schedule_work(schedule->handle, lv2_atom_total_size(atom), atom);
 	}
 
@@ -522,9 +490,14 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 		lv2_atom_forge_init(&forge, map);
 		uint8_t* buf = new (std::nothrow) uint8_t[256 + n_elems * sizeof(double)];
 		if (!buf) return LV2_STATE_ERR_NO_SPACE;
-		
 		lv2_atom_forge_set_buffer(&forge, buf, 256 + n_elems * sizeof(double));
-		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(forge_patch_wavetable(forge, n_elems, values));
+		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(patch.write_patch_Set_Vector(forge, 
+																							 urids.bvibratr, 
+																							 urids.bvibratr_wavetable_data, 
+																							 sizeof(double), 
+																							 urids.atom_Double, 
+																							 n_elems, 
+																							 values));
 		if (atom) schedule->schedule_work(schedule->handle, lv2_atom_total_size(atom), atom);
 		delete[] buf;
     }
@@ -628,7 +601,7 @@ LV2_Worker_Status BVibratr::work (LV2_Worker_Respond_Function respond, LV2_Worke
 		// SPF: Only set samples per frame and send whole worker_wt to LFO1 via work_response
 		else if (property == urids.bvibratr_wavetable_spf)
 		{
-			worker_wt.set_samples_per_frame(patch.get_int(atom));
+			worker_wt.set_samples_per_frame(patch.get_value_int(atom));
 			const Atom_WT_Install msg = work_new_wavetable();
 			const LV2_Atom* msg_ptr = reinterpret_cast<const LV2_Atom*>(&msg);
 			if (msg.wts.first && msg.wts.second) respond(handle, lv2_atom_total_size(msg_ptr), msg_ptr);

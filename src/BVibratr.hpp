@@ -51,8 +51,6 @@ private:
 	static void on_osc2_restart(LFO<double>& adsr, void* obj);
 	static void on_osc3_restart(LFO<double>& adsr, void* obj);
 	void play (uint32_t start, uint32_t end);
-	LV2_Atom_Forge_Ref forge_patch_wavetable(LV2_Atom_Forge& forge, const uint32_t n_elems, const double* data);
-	LV2_Atom_Forge_Ref forge_patch_spf(LV2_Atom_Forge& forge, const uint32_t spf);
 	bool garbage_collector(const Wavetable<>* ptr);
 	Atom_WT_Install work_new_wavetable();
 
