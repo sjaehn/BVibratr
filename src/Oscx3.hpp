@@ -165,17 +165,12 @@ template <class T> inline void Oscx3<T>::run(const T time)
     }
 
     // Run osc1
-    if (mode1 == BVIBRATR_OSC_MODE_LFO)
-    {
-        osc1.set_frequency(osc1_freq_m * freq1);
-        osc1.set_phase_shift(osc1_phase_d);
-        osc1.run(time);
-        signal_ += osc1_amp_m * osc1.get_value();
-        integral_ += osc1_amp_m * osc1.get_integral() * rate / freq1;
-    }
-
-    else /* BVIBRATR_OSC_MODE_USER */ 
-    {}
+    
+    osc1.set_frequency(osc1_freq_m * freq1);
+    osc1.set_phase_shift(osc1_phase_d);
+    osc1.run(time);
+    signal_ += osc1_amp_m * osc1.get_value();
+    integral_ += osc1_amp_m * osc1.get_integral() * rate / freq1;
 
     // Scale signal and integral_ to not exceed 1.0
     signal_ /= amp_f;

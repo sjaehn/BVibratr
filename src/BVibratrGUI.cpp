@@ -1,10 +1,15 @@
 #include "BVibratrGUI.hpp"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <exception>
 #include <initializer_list>
+#include <lv2/atom/atom.h>
+#include <lv2/atom/forge.h>
+#include <new>
 #include <string>
 #include "BWidgets/BEvents/Event.hpp"
 #include "BWidgets/BEvents/ExposeEvent.hpp"
@@ -22,6 +27,7 @@
 #include "ADSR.hpp"
 #include "Oscx3.hpp"
 #include "Limits.hpp"
+#include "Wavetable.hpp"
 #include "WavetableChooser.hpp"
 #include "WavetableWidget.hpp"
 
@@ -167,13 +173,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	adsrDisplay.createImage(BStyles::Status::normal);
 	waveformDisplay.createImage(BStyles::Status::normal);
 
-	// Set default wavetable
-	Wavetable<> wt;
-	try {wt.from_wvt(BVIBRATR_DEFAULT_WAVETABLE_FILE);}
-	catch (std::exception& exc) {std::cerr << exc.what() << std::endl;}
-	wavetableWidget.setWavetable(wt);
-	if (wt.size() <= 1) noWavetableLabel.show();
-	else noWavetableLabel.hide();
+	noWavetableLabel.show();
 
 	setTheme(theme);
 
@@ -220,8 +220,8 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	add (&mContainer);
 
 	//Init map, URID
-	urids.init (features, map);
-
+	urids.init (features, &map);
+	patch = Patch(map);
 }
 
 BVibratrGUI::~BVibratrGUI() 
@@ -232,46 +232,47 @@ BVibratrGUI::~BVibratrGUI()
 
 void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t format, const void* buffer)
 {
-	// Notify port for waveform data
-	/*
-	if ((format == urids.atom_eventTransfer) && (port_index == NOTIFY))
+	// Incomming atom events from CONTROL_OUT
+	if ((format == urids.atom_eventTransfer) && (port_index == BVIBRATR_CONTROL_OUT))
 	{
 		const LV2_Atom* atom = static_cast<const LV2_Atom*> (buffer);
-		if (lv2_atom_forge_is_object_type(&forge, atom->type))
+		if 
+		(
+			(patch.get_message_type(atom) == urids.patch_Set) &&
+			(patch.get_subject_type(atom) == urids.bvibratr)
+		)
 		{
-			const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object*> (atom);
-			
-			if (obj->body.otype == urids.patch_Set)
+			const LV2_Atom* val = patch.get_value_atom(atom);
+			if ((patch.get_property_type(atom) == urids.bvibratr_wavetable_data) && val && (val->type == urids.atom_Vector))
 			{
-				const LV2_Atom* property = NULL;
-      			const LV2_Atom* value    = NULL;
-				lv2_atom_object_get
-				(
-					obj,
-                    urids.patch_property, &property,
-                    urids.patch_value, &value,
-                    NULL
-				);
-
-				if (property && (property->type == urids.atom_URID) && value)
+				const LV2_Atom_Vector* vec = reinterpret_cast<const LV2_Atom_Vector*>(val);
+				const size_t n_elems = (vec->atom.size - sizeof(LV2_Atom_Vector_Body)) / sizeof(double);
+				const double* values = reinterpret_cast<const double*>(LV2_ATOM_CONTENTS_CONST(LV2_Atom_Vector, vec));
+				Wavetable<> wt;
+				if (n_elems > 1) 
 				{
-					const uint32_t key = reinterpret_cast<const LV2_Atom_URID*>(property)->body;
-					
-					if ((key == urids.bangr_xcursor) && (value->type == urids.atom_Float)) 
-					{
-						const float xcursor = reinterpret_cast<const LV2_Atom_Float*>(value)->body;
-						cursor.moveTo ((400.0 + xcursor * 200.0) - 0.5 * cursor.getWidth(), cursor.getPosition().y);
-					}
-
-					else if ((key == urids.bangr_ycursor) && (value->type == urids.atom_Float)) 
-					{
-						const float ycursor = reinterpret_cast<const LV2_Atom_Float*>(value)->body;
-						cursor.moveTo (cursor.getPosition().x, (180.0 + ycursor * 200.0) - 0.5 * cursor.getHeight());
-					}
+					const size_t frame_sz = std::min(wt.get_samples_per_frame(), n_elems);
+					wt.from_samples<double>(values, frame_sz, n_elems);
 				}
+				else wt.clear();
+				wavetableWidget.setWavetable(wt);
+				drawWaveform();
+				if (wt.get_total_samples() > 1) noWavetableLabel.hide();
+				else noWavetableLabel.show();
+			}
+
+			else if ((patch.get_property_type(atom) == urids.bvibratr_wavetable_spf) && val && (val->type == urids.atom_Int))
+			{
+				const LV2_Atom_Int* ival = reinterpret_cast<const LV2_Atom_Int*>(val);
+				Wavetable<> wt = wavetableWidget.getWavetable();
+				wt.set_samples_per_frame(ival->body);
+				wavetableWidget.setWavetable(wt);
+				drawWaveform();
+				if (wt.get_total_samples() > 1) noWavetableLabel.hide();
+				else noWavetableLabel.show();
 			}
 		}
-	} */
+	}
 
 	// Scan controller ports
 	if ((format == 0) && (port_index >= BVIBRATR_NR_PORTS) && (port_index < BVIBRATR_NR_PORTS + BVIBRATR_NR_CONTROLLERS))
@@ -331,6 +332,35 @@ void BVibratrGUI::onConfigureRequest (BEvents::Event* event)
 	setZoom (sz);
 }
 
+void BVibratrGUI::sendWavetablePath(const std::string path)
+{
+	if (path.length() > 924)
+	{
+		std::cerr << "File path \"" << path << "\" too long." << std::endl;
+		return;
+	}
+
+	LV2_Atom_Forge forge;
+	lv2_atom_forge_init(&forge, map);
+	uint8_t obj_buf[1024];
+	lv2_atom_forge_set_buffer(&forge, obj_buf, sizeof(obj_buf));
+	LV2_Atom_Forge_Frame frame;
+	LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Set);
+	if
+	(
+		msg &&
+		lv2_atom_forge_key(&forge, urids.patch_subject) &&
+		lv2_atom_forge_urid(&forge, urids.bvibratr) &&
+		lv2_atom_forge_key(&forge, urids.patch_property) &&
+		lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable) &&
+		lv2_atom_forge_key(&forge, urids.patch_value) &&
+		lv2_atom_forge_path(&forge, path.c_str(), path.length() + 1)
+	) {} /* pass */
+	lv2_atom_forge_pop(&forge, &frame);
+	LV2_Atom* atom = reinterpret_cast<LV2_Atom*>(msg);
+	if (msg) write_function(controller, BVIBRATR_CONTROL_IN, lv2_atom_total_size(atom), urids.atom_eventTransfer, atom);
+}
+
 void BVibratrGUI::drawAdsr()
 {
 	cairo_surface_t* surface = adsrDisplay.getImageSurface(BStyles::Status::normal);
@@ -379,6 +409,15 @@ void BVibratrGUI::drawAdsr()
 
 void BVibratrGUI::drawWaveform()
 {
+	Wavetable<>* wt1 = new (std::nothrow) Wavetable<>;
+	if (!wt1) return;
+	Wavetable<>* wt2 = new (std::nothrow) Wavetable<>;
+	if (!wt2) 
+	{
+		delete wt1; 
+		return;
+	}
+
 	cairo_surface_t* surface = waveformDisplay.getImageSurface(BStyles::Status::normal);
     cairoplus_surface_clear(surface);
     cairo_t* cr = cairo_create(surface);
@@ -393,18 +432,24 @@ void BVibratrGUI::drawWaveform()
 
 	ADSR<double> adsr(attack, decay, sustain, release, ADSR<double>::INVSQR);
 	Oscx3<double> oscx3(w);
-
+	
 	oscx3.mode1 = BVIBRATR_OSC_MODE_LFO;
 	oscx3.mode2 = static_cast<BVibratrOscModes>(osc2ModeCombobox.getValue());
 	oscx3.mode3 = static_cast<BVibratrOscModes>(osc3ModeCombobox.getValue());
 
-	oscx3.osc1.set_waveform((osc1ModeCombobox.getValue() == BVIBRATR_OSC_MODE_USER) ?
+	oscx3.osc1.set_waveform((osc1ModeCombobox.getValue() == BVIBRATR_OSC_MODE_WAVETABLE) ?
 							LFO<double>::WAVETABLE :
 							static_cast<LFO<double>::Waveform>(osc1WaveformCombobox.getValue()));
 	oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(osc2WaveformCombobox.getValue()));
 	oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(osc3WaveformCombobox.getValue()));
 
-	if (osc1ModeCombobox.getValue() == BVIBRATR_OSC_MODE_USER) oscx3.osc1.set_wavetable_data(wavetableWidget.getWavetable());
+	if (osc1ModeCombobox.getValue() == BVIBRATR_OSC_MODE_WAVETABLE) 
+	{
+		*wt1 = wavetableWidget.getWavetable();
+		*wt2 = wavetableWidget.getWavetable();	// No need to integrate here
+		oscx3.osc1.garbage_collector = [](const Wavetable<>* ptr){delete ptr; return true;};
+		oscx3.osc1.set_wavetable_data(wt1, wt2);
+	}
 
 	oscx3.amp3 = osc3AmpDial.getValue();
 	oscx3.freq3 = osc3FreqDial.getValue();
@@ -418,8 +463,8 @@ void BVibratrGUI::drawWaveform()
 
 	const double sampleTime = totalTime / w;		
 
-    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-    cairo_set_line_width(cr, 2.0);
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_set_line_width(cr, 2.0);
 	cairo_move_to(cr, 0.0, 0.5 * h);
 
 	for (double x = 0; x < w; ++x)
@@ -436,7 +481,7 @@ void BVibratrGUI::drawWaveform()
 		cairo_line_to(cr, x, 0.5 * h * (1.0 - signal));
 	}
 
-    cairo_stroke (cr);
+	cairo_stroke (cr);
     cairo_destroy (cr);
     waveformDisplay.update();
 }
@@ -676,15 +721,7 @@ void BVibratrGUI::wavetableFileSelectedCallback (BEvents::Event* event)
 
 	if (ui->wavetableChooser)
 	{
-		if (sev->getValue() != "")
-		{
-			Wavetable wt = wtc->wavetable.getWavetable();
-			if (wt.size() > 1) 
-			{
-				ui->wavetableWidget.setWavetable(wt);
-				ui->drawWaveform();
-			}
-		}
+		if (sev->getValue() != "") ui->sendWavetablePath(sev->getValue());
 		delete ui->wavetableChooser;
 		ui->wavetableChooser = nullptr;
 	}

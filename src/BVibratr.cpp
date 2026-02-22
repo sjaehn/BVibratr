@@ -1,11 +1,16 @@
 #include "BVibratr.hpp"
-#include "Ports.hpp"
 #include "Limits.hpp"
+#include "Ports.hpp"
+#include "Wavetable.hpp"
 
 // Utilities
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <exception>
 #include <limits>
+#include <lv2/atom/atom.h>
+#include <lv2/atom/forge.h>
 #include <lv2/atom/util.h>
 #include <lv2/midi/midi.h>
 
@@ -13,13 +18,14 @@
 
 BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature* const* features) :
 	rate (samplerate),
-	midi_in (nullptr),
+	control_in (nullptr),
 	audio_in_1 (nullptr),
 	audio_in_2 (nullptr),
 	audio_out_1 (nullptr),
 	audio_out_2 (nullptr),
 	latency_port(nullptr),
 	map (nullptr),
+	//unmap(nullptr),
 	adsr(0, 0, 1, 0, ADSR<double>::INVSQR),
 	oscx3(samplerate),
 	note(0xFF),
@@ -32,18 +38,30 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	depth(0.0),
 	shift(0.0, (SQRT_12_2 - 1.0)),	// Limit temporal shift to 1 semitone
 	amp(1.0f, 0.001f),
-	mix(0.0f, 0.001f)
+	mix(0.0f, 0.001f),
+	notify(false)
 {
 	// Init controllers
 	controller_ports.fill(nullptr);
 	controllers.fill(std::numeric_limits<float>::infinity());	// Ensure change once ports connected
 
-	// Map urids
-    urids.init (features, map);
+	// Map, urids, ...
+	urids.init (features, &map);
+	patch = Patch(map);
+	lv2_atom_forge_init (&forge, map);
+
+	//const char* missing1 = lv2_features_query (features, LV2_URID__unmap, &unmap, false, NULL);
+	//if (missing1) throw std::invalid_argument ("Feature unmap not provided by the host. Can't instantiate plugin.");
+	
+	// Get worker
+	const char* missing = lv2_features_query (features, LV2_WORKER__schedule, &workerSchedule, true, NULL);
+    if (missing) throw std::invalid_argument ("Feature worker not provided by the host. Can't instantiate plugin.");
 
 	// Init buffers
 	buffer_1.fill(0.0f);
 	buffer_2.fill(0.0f);
+
+	oscx3.osc1.garbage_collector = [this](const Wavetable<>* ptr){return garbage_collector(ptr);};
 
 	oscx3.osc1.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc1_restart, this);
 	oscx3.osc2.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc2_restart, this);
@@ -56,13 +74,16 @@ void BVibratr::connect_port (uint32_t port, void *data)
 {
 	switch (port) 
 	{
-		case BVIBRATR_MIDI_IN:		midi_in = static_cast<LV2_Atom_Sequence*>(data);
+		case BVIBRATR_CONTROL_IN:	control_in = static_cast<const LV2_Atom_Sequence*>(data);
 									break;
 
-		case BVIBRATR_AUDIO_IN_1:	audio_in_1 = static_cast<float*>(data);
+		case BVIBRATR_CONTROL_OUT:	control_out = static_cast<LV2_Atom_Sequence*>(data);
 									break;
 
-		case BVIBRATR_AUDIO_IN_2:	audio_in_2 = static_cast<float*>(data);
+		case BVIBRATR_AUDIO_IN_1:	audio_in_1 = static_cast<const float*>(data);
+									break;
+
+		case BVIBRATR_AUDIO_IN_2:	audio_in_2 = static_cast<const float*>(data);
 									break;
 
 		case BVIBRATR_AUDIO_OUT_1:	audio_out_1 = static_cast<float*>(data);
@@ -93,7 +114,7 @@ void BVibratr::deactivate ()
 void BVibratr::run (uint32_t n_samples)
 {
 	// Check if all ports are connected
-	if ((!midi_in) || (!audio_in_1) || (!audio_in_2) || (!audio_out_1) || (!audio_out_2)) return;
+	if ((!control_in) || (!control_out) || (!audio_in_1) || (!audio_in_2) || (!audio_out_1) || (!audio_out_2)) return;
 	for (const float* c : controller_ports) if (!c) return;
 	if (!latency_port) return;
 
@@ -124,8 +145,9 @@ void BVibratr::run (uint32_t n_samples)
 					if (controllers[BVIBRATR_DEPTH_IS_CC] == 128) depth = 0.01 /* cents */ * value;
 					break;
 
+				case BVIBRATR_OSC1_MODE:
 				case BVIBRATR_OSC1_WAVEFORM:
-					oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(value));
+					osc1_set_waveform();
 					break;
 
 				case BVIBRATR_OSC2_WAVEFORM:
@@ -157,20 +179,52 @@ void BVibratr::run (uint32_t n_samples)
 		}
 	}
 
-	// Playback and MIDI
+	// Prepare CONTROL_OUT buffer and initialize atom sequence
+	const uint32_t space = control_out->atom.size;
+	LV2_Atom_Forge_Frame frame;
+	lv2_atom_forge_set_buffer(&forge, (uint8_t*) control_out, space);
+	lv2_atom_forge_sequence_head(&forge, &frame, 0);
+
+	// Playback, parameters and MIDI
 	uint32_t last_frame = 0;
-    LV2_ATOM_SEQUENCE_FOREACH (midi_in, ev)
+    LV2_ATOM_SEQUENCE_FOREACH (control_in, ev)
     {
         /* play frames until event */
         const uint32_t frame = ev->time.frames;
+		const LV2_Atom* atom = &ev->body;
         play (last_frame, frame);
         last_frame = frame;
 
-        if (ev->body.type == urids.midi_MidiEvent) on_midi(reinterpret_cast<const uint8_t*> (ev + 1));
+		// Midi
+		if (atom->type == urids.midi_MidiEvent) on_midi(reinterpret_cast<const uint8_t*> (ev + 1));
+		
+		// Object: Patch messages
+		else if ((atom->type == urids.atom_Object) || (atom->type == urids.atom_Blank))
+		{
+			const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object*>(atom);
+
+			// Patch_Get: Blindly send wavetable to CONTROL_OUT
+			if (obj->body.otype == urids.patch_Get) notify = true;
+
+			// Patch_Set: Forward to worker
+			else if (obj->body.otype == urids.patch_Set) workerSchedule->schedule_work(workerSchedule->handle, lv2_atom_total_size(atom), atom);
+			
+		}
     }
 
     /* play remaining frames */
     play (last_frame, n_samples);
+
+	// Update CONTROL_OUT
+	if (notify)
+	{
+		notify = false;
+		forge_patch_wavetable(forge);
+		forge_patch_spf(forge);
+	}
+
+	// Close CONTROL_OUT
+	lv2_atom_forge_pop(&forge, &frame);
 }
 
 void BVibratr::start()
@@ -180,7 +234,7 @@ void BVibratr::start()
 						 controllers[BVIBRATR_DEPTH_SUSTAIN],
 						 controllers[BVIBRATR_DEPTH_RELEASE]);
 
-	oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC1_WAVEFORM]));
+	osc1_set_waveform();
 	oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC2_WAVEFORM]));
 	oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC3_WAVEFORM]));
 
@@ -267,6 +321,13 @@ void BVibratr::on_midi (const uint8_t* const msg)
 
 }
 
+void BVibratr::osc1_set_waveform()
+{
+	oscx3.osc1.set_waveform(static_cast<LFO<double>::Waveform>((controllers[BVIBRATR_OSC1_MODE] == BVIBRATR_OSC_MODE_LFO) ?
+															   controllers[BVIBRATR_OSC1_WAVEFORM] :
+															   0));
+}
+
 void BVibratr::on_osc1_restart(LFO<double>& adsr, void* obj)
 {
 	BVibratr* plugin = static_cast<BVibratr*>(obj);
@@ -348,6 +409,56 @@ void BVibratr::play (uint32_t start, uint32_t end)
 	}
 }
 
+LV2_Atom_Forge_Ref BVibratr::forge_patch_wavetable(LV2_Atom_Forge& forge)
+{
+	const Wavetable<>* wt = oscx3.osc1.get_latest_wavetable();
+	if (!wt) return 0;
+
+	if (lv2_atom_forge_frame_time(&forge, 0))
+	{
+		LV2_Atom_Forge_Frame frame;
+		const LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Set);
+		if
+		(
+			msg &&
+			lv2_atom_forge_key(&forge, urids.patch_subject) &&
+			lv2_atom_forge_urid(&forge, urids.bvibratr) &&
+			lv2_atom_forge_key(&forge, urids.patch_property) &&
+			lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable_data) &&
+			lv2_atom_forge_key(&forge, urids.patch_value) &&
+			lv2_atom_forge_vector(&forge, sizeof(double), urids.atom_Double, wt->size(), &((*wt)[0]))
+		) {} /* pass */
+		lv2_atom_forge_pop(&forge, &frame);
+		return msg;
+	}
+	return 0;
+}
+
+LV2_Atom_Forge_Ref BVibratr::forge_patch_spf(LV2_Atom_Forge& forge)
+{
+	const Wavetable<>* wt = oscx3.osc1.get_latest_wavetable();
+	if (!wt) return 0;
+
+	if (lv2_atom_forge_frame_time(&forge, 0))
+	{
+		LV2_Atom_Forge_Frame frame;
+		const LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Set);
+		if
+		(
+			msg &&
+			lv2_atom_forge_key(&forge, urids.patch_subject) &&
+			lv2_atom_forge_urid(&forge, urids.bvibratr) &&
+			lv2_atom_forge_key(&forge, urids.patch_property) &&
+			lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable_spf) &&
+			lv2_atom_forge_key(&forge, urids.patch_value) &&
+			lv2_atom_forge_int(&forge, wt->get_samples_per_frame())
+		) {} /* pass */
+		lv2_atom_forge_pop(&forge, &frame);
+		return msg;
+	}
+	return 0;
+}
+
 /*LV2_State_Status BVibratr::state_save (LV2_State_Store_Function store, LV2_State_Handle handle, uint32_t flags, const LV2_Feature* const* features)
 {
 	store (handle, urids.lv2plugin_example, &example, sizeof(example), urids.atom_Type_of_example, LV2_STATE_IS_POD);
@@ -371,11 +482,144 @@ void BVibratr::play (uint32_t start, uint32_t end)
 	return LV2_STATE_SUCCESS;
 }*/
 
-/*LV2_Worker_Status BVibratr::work (LV2_Worker_Respond_Function respond, LV2_Worker_Respond_Handle handle, uint32_t size, const void* data)
-{}*/
+bool BVibratr::garbage_collector(const Wavetable<>* ptr)
+{
+	if (!ptr) return false;
 
-/*LV2_Worker_Status BVibratr::work_response (uint32_t size, const void* data)
-{}*/
+	// Send a discreet atom to worker as everything is clear if urid bvibratr_garbage_collecor is provided
+	Atom_GC wtptr_atom = {{sizeof(Wavetable<>*), urids.bvibratr_garbage_collecor}, ptr};
+	workerSchedule->schedule_work (workerSchedule->handle, sizeof(Atom_GC), &wtptr_atom);
+	return true;
+}
+
+BVibratr::Atom_WT_Install BVibratr::work_new_wavetable()
+{
+	// 2x Copy construct the work wavetable to wt1 and wt2 in the heap memory. Needs to be deleted outside.
+	// this method (e.g., using a garbage collector)
+	Wavetable<>* wt1 = new (std::nothrow) Wavetable<>();
+	if (!wt1) return {0, 0, {nullptr, nullptr}};
+	Wavetable<>* wt2 = new (std::nothrow) Wavetable<>();
+	if (!wt2)
+	{
+		delete wt1;
+		return {0, 0, {nullptr, nullptr}};
+	}
+
+	*wt1 = worker_wt;
+	*wt2 = worker_wt;
+
+	// Integrate wt2
+	wt2->integrate();
+	wt2->normalize(-1, 1);
+
+	// Create a patch message with a ptr to the new wavetables
+	return  {2 * sizeof(Wavetable<>*), urids.bvibratr_wavetable_install, {wt1, wt2}};
+}
+
+LV2_Worker_Status BVibratr::work (LV2_Worker_Respond_Function respond, LV2_Worker_Respond_Handle handle, uint32_t size, const void* data)
+{
+	if (!data) return LV2_WORKER_ERR_UNKNOWN;
+	const LV2_Atom* atom = reinterpret_cast<const LV2_Atom*>(data);
+	if (!atom) return LV2_WORKER_ERR_UNKNOWN;
+
+	// Garbage collector: delete Wavetable<>* and nothing else
+	if (atom->type == urids.bvibratr_garbage_collecor)
+	{
+		const Atom_GC* gc_atom = reinterpret_cast<const Atom_GC*>(atom);
+		if (gc_atom) delete reinterpret_cast<const Wavetable<>*>(gc_atom->ptr);
+	}
+
+	// Patch data
+	else if (patch.is_Patch_Msg(atom) && (patch.get_subject_type(atom) == urids.bvibratr))
+	{
+		// Wavetable
+		LV2_URID property = patch.get_property_type(atom);
+		if (property == urids.bvibratr_wavetable)
+		{
+			// Path propvided: Load and install
+			const LV2_Atom* watom = patch.get_value_atom(atom);
+			if (watom && (watom->type == urids.atom_Path))
+			{
+				// Load wavetable to worker_wt
+				const char* path = reinterpret_cast<const char*>(LV2_ATOM_BODY_CONST(watom));
+				try{worker_wt.from_wvt(std::string(path));}
+				catch (std::exception &exc) {fprintf(stderr, "%s\n", exc.what());}
+
+				// Copy, integrate, and pack pointers to Atom_WT_Install
+				const Atom_WT_Install msg = work_new_wavetable();
+
+				// Send whole Atom_WT_Install to LFO1 via work_response
+				const LV2_Atom* msg_ptr = reinterpret_cast<const LV2_Atom*>(&msg);
+				if (msg.wts.first && msg.wts.second) respond(handle, lv2_atom_total_size(msg_ptr), msg_ptr);
+			}
+			
+			// Data provided
+			if (watom && (watom->type == urids.atom_Object))
+			{
+				const LV2_Atom_Object* wobj = reinterpret_cast<const LV2_Atom_Object*>(LV2_ATOM_BODY_CONST(watom));
+				if (wobj->body.otype == urids.bvibratr_wavetable)
+				{
+					// Apply data on worker_wt
+					LV2_Atom *spf, *data = nullptr;
+					if (lv2_atom_object_get(wobj, 
+											urids.bvibratr_wavetable_spf, &spf,
+											urids.bvibratr_wavetable_data, &data, 
+											nullptr))
+					{
+						if (data && (data->type == urids.atom_Vector))
+						{
+							const LV2_Atom_Vector* vatom = reinterpret_cast<const LV2_Atom_Vector*>(data);
+							const uint32_t n_elems = (vatom->atom.size - sizeof(LV2_Atom_Vector_Body)) / sizeof(double);
+							const double* values = reinterpret_cast<const double*>(LV2_ATOM_CONTENTS_CONST(LV2_Atom_Vector, vatom));
+							worker_wt.from_samples(values, worker_wt.get_samples_per_frame(), n_elems);
+						}
+
+						if (spf && (spf->type == urids.atom_Int))
+						{
+							worker_wt.set_samples_per_frame(reinterpret_cast<LV2_Atom_Int*>(spf)->body);
+						}
+					}
+
+					// Copy, integrate, and pack pointers to Atom_WT_Install
+					const Atom_WT_Install msg = work_new_wavetable();
+
+					// Send whole Atom_WT_Install to LFO1 via work_response
+					const LV2_Atom* msg_ptr = reinterpret_cast<const LV2_Atom*>(&msg);
+					if (msg.wts.first && msg.wts.second) respond(handle, lv2_atom_total_size(msg_ptr), msg_ptr);
+				}
+			}
+		}
+		
+		// SPF: Only set samples per frame and send whole worker_wt to LFO1 via work_response
+		else if (property == urids.bvibratr_wavetable_spf)
+		{
+			worker_wt.set_samples_per_frame(patch.get_long(atom));
+			const Atom_WT_Install msg = work_new_wavetable();
+			const LV2_Atom* msg_ptr = reinterpret_cast<const LV2_Atom*>(&msg);
+			if (msg.wts.first && msg.wts.second) respond(handle, lv2_atom_total_size(msg_ptr), msg_ptr);
+		}
+	}
+	
+	return LV2_WORKER_SUCCESS;
+}
+
+LV2_Worker_Status BVibratr::work_response (uint32_t size, const void* data)
+{
+	if (!data) return LV2_WORKER_ERR_UNKNOWN;
+	const LV2_Atom* atom = reinterpret_cast<const LV2_Atom*>(data);
+	if (!atom) return LV2_WORKER_ERR_UNKNOWN;
+
+	// Wavetable install and schedule notify via CONTROL_OUT
+	if (atom->type == urids.bvibratr_wavetable_install)
+	{
+		const Atom_WT_Install* wti_atom = reinterpret_cast<const Atom_WT_Install*>(atom);
+		const Wavetable<>* wt1 = wti_atom->wts.first;
+		const Wavetable<>* wt2 = wti_atom->wts.second;
+		oscx3.osc1.set_wavetable_data(wt1, wt2);
+		notify = true;
+	}
+	return LV2_WORKER_SUCCESS;
+}
 
 /*LV2_Worker_Status BVibratr::end_run ()
 {}*/
@@ -438,22 +682,22 @@ static void deactivate (LV2_Handle instance)
 	return inst->state_restore (retrieve, handle, flags, features);
 }*/
 
-/*static LV2_Worker_Status work (LV2_Handle instance, LV2_Worker_Respond_Function respond, LV2_Worker_Respond_Handle handle,
+static LV2_Worker_Status work (LV2_Handle instance, LV2_Worker_Respond_Function respond, LV2_Worker_Respond_Handle handle,
 	uint32_t size, const void* data)
 {
 	BVibratr* inst = static_cast<BVibratr*>(instance);
 	if (!inst) return LV2_WORKER_SUCCESS;
 
 	return inst->work (respond, handle, size, data);
-}*/
+}
 
-/*static LV2_Worker_Status work_response (LV2_Handle instance, uint32_t size,  const void* data)
+static LV2_Worker_Status work_response (LV2_Handle instance, uint32_t size,  const void* data)
 {
 	BVibratr* inst = static_cast<BVibratr*>(instance);
 	if (!inst) return LV2_WORKER_SUCCESS;
 
 	return inst->work_response (size, data);
-}*/
+}
 
 /*static LV2_Worker_Status end_run (LV2_Handle instance)
 {
@@ -476,8 +720,8 @@ static const void* extension_data (const char* uri)
 	//if (!strcmp(uri, LV2_STATE__interface)) return &state;
 
 	// Worker
-	//static const LV2_Worker_Interface worker = {work, work_response, end_run};
-	//if (!strcmp(uri, LV2_WORKER__interface)) return &worker;
+	static const LV2_Worker_Interface worker = {work, work_response, nullptr};
+	if (!strcmp(uri, LV2_WORKER__interface)) return &worker;
 
 	return NULL;
 }

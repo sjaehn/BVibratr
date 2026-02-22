@@ -153,13 +153,27 @@ public:
     void from_wvt(const std::string& path);
 
     /**
-    Loads a %Wavetable from samples data with a defined frame size.
+    Loads a %Wavetable from samples data with a defined frame size performing
+    data conversion.
     @param samples  Pointer to samples data.
     @param frame_sz Number of samples per frame.
     @param total_sz Total number of samples.
+    @tparam T2      Data type of source samples.
      */
     template<typename T2>
     void from_samples(const T2* samples, const size_t frame_sz, const size_t total_sz);
+
+    /**
+    Loads a %Wavetable from samples data with a defined frame size without
+    data conversion.
+    @param samples  Pointer to samples data.
+    @param frame_sz Number of samples per frame.
+    @param total_sz Total number of samples.
+
+    @note Calling this method may take less than 1 millisecond per 1,000,000
+    samples depending on the system.
+     */
+    void from_samples(const T* samples, const size_t frame_sz, const size_t total_sz);
 
     /**
     Gets the total number of samples of the %Wavetable.
@@ -177,7 +191,8 @@ public:
     /**
     Sets the number of samples per frame. If the number of samples per frame 
     exceeds the total number of frames, then the %Wavetable is filled up with
-    zeros to complete at least one frame.
+    zeros to complete at least one frame with the given number of samples per
+    frame.
     @param spf      Number of samples per frame, at least 1.
     @param trim     If true, clips tailing samples.
      */
@@ -189,6 +204,20 @@ public:
     @return     Number of samples per frames.
      */
     size_t get_samples_per_frame() const;
+
+    /**
+    Calculates and sets the integral wavetable of this wavetable.
+    */
+    void integrate();
+
+    /**
+    Normalizes the wavetable to fit into the range [min, max].
+    @param min      Lower limit.
+    @param max      Upper limit.
+
+    @todo   Normalize to center? Prevent upscaling?
+     */
+    void normalize(const T min, const T max);
 
     /**
     Gets the value of a sample at a given relative position. The infractional
@@ -249,6 +278,7 @@ template<class T, size_t N> void inline Wavetable<T, N>::clear()
     wt_size_ = 0;
     operator[](0) = 0;
     wt_spf_= 1;
+    wt_err_=NO_ERROR;
 }
 
 template<class T, size_t N> void inline Wavetable<T, N>::push_back(const T val)
@@ -279,84 +309,78 @@ template<class T, size_t N> void inline Wavetable<T, N>::from_string(const char*
 {
     if (!c) return;
 
-    // Empty string: Clear wavetable
-    if (!c[0])
+    clear();
+
+    // String not empty 
+    if (c[0])
     {
-        clear();
-        set_samples_per_frame(spf);
-        return;
-    }
+        // Create a temporary wavetable with an empty wave
+        const char* ic = c;
+        const size_t clen = strlen(c);
+        char l[0x10000] = "";
 
-    // Create a temporary wavetable with an empty wave
-    Wavetable<T, N> n_data;
-    const char* ic = c;
-    const size_t clen = strlen(c);
-    char l[0x10000] = "";
-
-    while (ic < c + clen)
-    {
-        // Strip leading whitespaces
-        while (ic[0] && (isspace(*ic))) ++ic;
-
-        // Find next line break
-        const char* const nc = strchr(ic, '\n');
-
-        // Line
-        size_t llen = 0;
-        if (nc) llen = nc - ic;
-        else llen = strlen(ic);
-        if (llen >= 0x10000 - 1)
+        while (ic < c + clen)
         {
-            wt_err_ = CORRUPT_RAW_DATA_FORMAT;
-            return;
-        }
+            // Strip leading whitespaces
+            while (ic[0] && (isspace(*ic))) ++ic;
 
-        strncpy(l, ic, llen);
-        l[llen] = 0;
+            // Find next line break
+            const char* const nc = strchr(ic, '\n');
 
-        // Set pos for next line 
-        ic = nc + 1;
-
-        // Everything but comments (#)
-        if (l[0] != '#')
-        {
-            // Parameter(s)
-            // TODO Use parser if more parameters will be implemented
-            const char* cmdstr = strstr(l, "SAMPLES_PER_FRAME");
-            if (cmdstr)
+            // Line
+            size_t llen = 0;
+            if (nc) llen = nc - ic;
+            else llen = strlen(ic);
+            if (llen >= 0x10000 - 1)
             {
-                const char* valstr = cmdstr + strlen("SAMPLES_PER_FRAME");
-                char* endptr = NULL;
-                const long val = strtol(valstr, &endptr, 0);
-                if ((valstr == endptr) || (val < 1) || (val >0x10000)) 
+                wt_err_ = CORRUPT_RAW_DATA_FORMAT;
+                return;
+            }
+
+            strncpy(l, ic, llen);
+            l[llen] = 0;
+
+            // Set pos for next line 
+            ic = nc + 1;
+
+            // Everything but comments (#)
+            if (l[0] != '#')
+            {
+                // Parameter(s)
+                // TODO Use parser if more parameters will be implemented
+                const char* cmdstr = strstr(l, "SAMPLES_PER_FRAME");
+                if (cmdstr)
                 {
-                    wt_err_ = CORRUPT_RAW_DATA_VALUE;
-                    break;
+                    const char* valstr = cmdstr + strlen("SAMPLES_PER_FRAME");
+                    char* endptr = NULL;
+                    const long val = strtol(valstr, &endptr, 0);
+                    if ((valstr == endptr) || (val < 1) || (val >0x10000)) 
+                    {
+                        wt_err_ = CORRUPT_RAW_DATA_VALUE;
+                        break;
+                    }
+                    else spf = val;
                 }
-                else spf = val;
-            }
 
-            // String to value
-            else 
-            {
-                double val = strto_(l);
-                if (wt_err_) break;
-                n_data.push_back(val);
+                // String to value (ignoring empty lines)
+                else if (l[0])
+                {
+                    double val = strto_(l);
+                    if (wt_err_) break;
+                    push_back(val);
+                }
             }
+            
+            // End of string
+            if (!nc) break;
+
+            // Next line 
+            ic = nc + 1;
         }
-        
-        // End of string
-        if (!nc) break;
-
-        // Next line 
-        ic = nc + 1;
     }
 
     // Validate spf
-    n_data.set_samples_per_frame(spf);
-
-    // Copy data
-    operator=(n_data);
+    set_samples_per_frame(spf);
 }
 
 template<class T, size_t N> void inline Wavetable<T, N>::from_string(const std::string& s, size_t spf)
@@ -387,16 +411,23 @@ inline void Wavetable<T, N>::from_samples(const T2* samples, const size_t frame_
 {
     if ((!total_sz) || (!frame_sz)) return;
 
-    Wavetable<T, N> n_data;
-    size_t nr = std::min(N, total_sz);
-
-    for (size_t i = 0; i < nr; ++ i) n_data[i] = static_cast<T>(samples[i]);
+    wt_size_ = std::min(N, total_sz);
+    for (size_t i = 0; i < wt_size_; ++ i) operator[](i) = static_cast<T>(samples[i]);
 
     // Set spf_ and validate
     set_samples_per_frame(std::min(N, frame_sz));
+}
 
-    // Copy data
-    operator=(n_data);
+template<class T, size_t N>
+inline void Wavetable<T, N>::from_samples(const T* samples, const size_t frame_sz, const size_t total_sz)
+{
+    if ((!total_sz) || (!frame_sz)) return;
+
+    wt_size_ = std::min(N, total_sz);
+    memcpy(this->data(), samples, wt_size_ * sizeof(T));
+
+    // Set spf_ and validate
+    set_samples_per_frame(std::min(N, frame_sz));
 }
 
 template<class T, size_t N> inline size_t Wavetable<T, N>::get_total_samples() const {return get_total_frames() * wt_spf_;}
@@ -424,6 +455,37 @@ template<class T, size_t N> inline void Wavetable<T, N>::set_samples_per_frame(c
     }
 
     
+}
+
+template<class T, size_t N> inline void Wavetable<T, N>::integrate()
+{
+    T integral = 0;
+    const size_t n_samples = get_total_samples();
+    for (size_t i = 0; i < n_samples; ++i) 
+    {
+        integral += operator[](i);
+        operator[](i) = integral;
+    }
+}
+
+template<class T, size_t N> inline void Wavetable<T, N>::normalize(const T min, const T max)
+{
+    T wt_min = operator[](0);
+    T wt_max = operator[](0);
+    const size_t n_samples = get_total_samples();
+    for (size_t i = 0; i < n_samples; ++i)
+    {
+        const T val = operator[](i);
+        if (val < wt_min) wt_min = val;
+        if (val > wt_max) wt_max = val; 
+    }
+
+    if (wt_max == wt_min) return;
+    for (size_t i = 0; i < n_samples; ++i) 
+    {
+        const T frac = (operator[](i) - wt_min) / (wt_max - wt_min); 
+        operator[](i) = min + frac * (max - min);  
+    }  
 }
 
 template<class T, size_t N> inline size_t Wavetable<T, N>::get_samples_per_frame() const {return wt_spf_;}

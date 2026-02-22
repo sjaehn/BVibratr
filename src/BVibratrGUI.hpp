@@ -21,6 +21,7 @@
 #include "BWidgets/BWidgets/TextButton.hpp"
 
 #include "BDial.hpp"
+#include "Patch.hpp"
 #include "ValueHSlider.hpp"
 #include "Ports.hpp"
 #include "Urids.hpp"
@@ -31,12 +32,9 @@
 #define WWW_BROWSER_CMD "x-www-browser"
 #endif
 
-// #define XREGION_URL "http://www.airwindows.com/xregion/"
 // #define HELP_URL "https://github.com/sjaehn/BAngr/blob/master/README.md"
 // #define YT_URL "https://www.youtube.com/watch?v=-kWy_1UYazo"
 
-#define BVIBRATR_URI "https://www.jahnichen.de/plugins/lv2/BVibratr"
-#define BVIBRATR_GUI_URI "https://www.jahnichen.de/plugins/lv2/BVibratr#gui"
 #define URID(x) (BURID(BVIBRATR_GUI_URI x))
 
 class BVibratrGUI : public BWidgets::Window
@@ -52,6 +50,7 @@ public:
 
 
 private:
+	void sendWavetablePath(const std::string path);
 	void drawAdsr ();
 	void drawWaveform ();
 	static void valueChangedCallback (BEvents::Event* event);
@@ -66,6 +65,7 @@ private:
 	BVibratrURIDs urids;
 	LV2_URID_Map* map;
 	// LV2_URID_Unmap* unmap;
+	Patch patch;
 
 	// Widgets
 	BWidgets::Image mContainer;

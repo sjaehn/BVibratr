@@ -87,7 +87,7 @@ There are at least two ways to realize the MIDI input:
 can use both, MIDI and audio signal comming from the synth. 
 * In parallel to an audio stream-producing instrument or sampler. In this 
 case, you can use the audio signal from your instrument, but you will need an
-additional MIDI input to use all the features from B.Vibratr.
+additional MIDI input to use all the MIDI features from B.Vibratr.
 
 
 ### Step 2: Set a trigger
@@ -117,8 +117,8 @@ parameter can externally be cotrolled using the MIDI CC option (e.g.,
 modulation wheel) without plugin signal routing/automatization.
 
 There are three oscillators to generate the vibrato pitch waveform. The first
-one (OSC1) can either generate LFOs or use a pitch wavetable (TODO). In both
-cases, you can set the oscillator frequency. Frequencies of naturally sounding 
+one (OSC1) can either generate LFOs or use low frequency wavetable. In both
+cases, you can set the frequency. Frequencies of naturally sounding 
 vibratos differ from instrument to instrument and are typically in the range
 between 4 and 8.
 
@@ -140,22 +140,21 @@ and the tremolo amount.
 
 ### Appendix: Wavetables
 
-You can import wavetables into B.Vibratr from simple .wvt text files or from
-wavetable synthesizer-compatible audio files (e.g., .wav) (TODO). It contains
-one floating point value on each line for each sample. For more details see
-[wvt.md](doc/wvt.md).
+You can import (low frequency) wavetables into B.Vibratr from simple .wvt text 
+files. It contains one floating point value on each line for each sample. For 
+more details see [wvt.md](doc/wvt.md).
 
 TODO: You can also import wavetables created for other synthesizers in the 
 .wav or other audio formats. They often have got 256, 512, 1024, 2048 or even
 more samples per frame depending on the synthesizer created for and the
 respective specification.
 
-TODO: The wavetables are used by the B.Vibratr algorithm to calculate
+The uploaded wavetables are used by the B.Vibratr algorithm to calculate
 mathematical integral wavetables which are then used by the oscillator OSC1.
 
 **Note:** Wavetable files usually contain raw audio signal data in the 
-dependency of time. The frequency of the signal represents it pitch. However,
-B.Vibratr expects pitch signals in the dependency of time.
+dependency of time in a high frequency. The frequency of the signal represents
+its pitch. However, B.Vibratr expects pitch signals in the dependency of time.
 
 
 ## Internationalization
@@ -210,12 +209,12 @@ request or notifying me (issue report, e-mail, ...).
 * Used-defined waveforms
   * Calculate integrals of pitch wavetables
   * Wavetable "oscillator"
+  * Communicate wavetables from UI to DSP (and vice versa)
 
 
 ## TODOs
 
 * Used-defined waveforms
-  * Communicate wavetables from UI to DSP (and vice versa)
   * Store and restore wavetables
   * Import wavetables from wav
   * Simple tools for wavetable manipulation
