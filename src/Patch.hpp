@@ -205,6 +205,26 @@ public:
         if (!value) return 0;
         return reinterpret_cast<const LV2_Atom_Long*>(value)->body;
     }
+
+    /**
+    Gets int data from a Patch.
+    @param atom     Pointer to an LV2 atom.
+    @return         Int data stored in the value property. Returns 0 for any
+                    case of invalid data. Thus, returning 0 needs to be 
+                    further validated.
+
+    @todo           Only patch_Get and patch_Set supported yet. Extend!
+     */
+    inline const int32_t get_int(const LV2_Atom* atom) const
+    {
+        if ((!atom) || (atom->type != atom_Object)) return 0;
+        const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object*>(atom);
+        if ((obj->body.otype != patch_Get) && (obj->body.otype != patch_Set)) return 0;
+        const LV2_Atom* value = nullptr;
+        lv2_atom_object_get (obj, patch_value, &value, nullptr);
+        if (!value) return 0;
+        return reinterpret_cast<const LV2_Atom_Int*>(value)->body;
+    }
 };
 
 #endif /*PATCH_HPP_*/

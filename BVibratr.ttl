@@ -10,11 +10,13 @@
 @prefix time: <http://lv2plug.in/ns/ext/time#> .
 @prefix midi: <http://lv2plug.in/ns/ext/midi#> .
 @prefix patch: <http://lv2plug.in/ns/ext/patch#> .
-#@prefix state: <http://lv2plug.in/ns/ext/state#> .
+@prefix state: <http://lv2plug.in/ns/ext/state#> .
 @prefix work:  <http://lv2plug.in/ns/ext/worker#> .
 @prefix rsz: <http://lv2plug.in/ns/ext/resize-port#> .
-@prefix pprops: <http://lv2plug.in/ns/ext/port-props#> .
+#@prefix pprops: <http://lv2plug.in/ns/ext/port-props#> .
 @prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
+@prefix plugin: <https://www.jahnichen.de/plugins/lv2/BVibratr#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <http://www.jahnichen.de/sjaehn#me>
 	a foaf:Person;
@@ -22,10 +24,24 @@
 #	foaf:mbox ;
 	foaf:homepage <https://github.com/sjaehn/> .
 
-<https://www.jahnichen.de/plugins/lv2/BVibratr#gui> a ui:X11UI ;
-    lv2:binary <BVibratrGUI.so> ;
-    lv2:requiredFeature ui:idleInterface ;
-    lv2:extensionData ui:idleInterface .
+plugin:gui 
+        a ui:X11UI ;
+        lv2:binary <BVibratrGUI.so> ;
+        lv2:requiredFeature ui:idleInterface ;
+        lv2:extensionData ui:idleInterface .
+
+plugin:wavetable_spf
+	a lv2:Parameter ;
+	rdfs:label "Wavetable samples per frame" ;
+	rdfs:range atom:Int ;
+        lv2:default 1 ;
+        lv2:minimum 1 ;
+        lv2:maximum 65536 .
+
+plugin:wavetable_data
+	a lv2:Parameter ;
+	rdfs:label "Wavetable data" ;
+	rdfs:range atom:Vector .
 
 <https://www.jahnichen.de/plugins/lv2/BVibratr>
         a lv2:Plugin, lv2:InstrumentPlugin, doap:Project;
@@ -35,13 +51,11 @@
 	doap:license <http://usefulinc.com/doap/licenses/gpl> ;
 #	lv2:microVersion 1 ;
 #	lv2:minorVersion 0 ;
-        lv2:optionalFeature lv2:hardRTCapable ;
         lv2:binary <BVibratr.so> ;
-	lv2:requiredFeature urid:map ;
-        lv2:requiredFeature work:schedule ;
-#	lv2:extensionData state:interface;                      # Only needed if additional data are stored in the plugin state
-	lv2:extensionData work:interface;
-	ui:ui <https://www.jahnichen.de/plugins/lv2/BVibratr#gui> ;
+        lv2:optionalFeature lv2:hardRTCapable , state:loadDefaultState , state:threadSafeRestore ;
+	lv2:requiredFeature urid:map , work:schedule ;
+	lv2:extensionData state:interface , work:interface;
+	ui:ui plugin:gui ;
 	
         # Control in and MIDI input port
 	lv2:port
@@ -394,10 +408,25 @@
 		a lv2:OutputPort , lv2:ControlPort ;
 		lv2:index 28 ;
 		lv2:symbol "latency" ;
-		lv2:name "latency";
+		lv2:name "latency" ;
 		lv2:minimum 0 ;
 		lv2:maximum 192000 ;
                 #lv2:designation lv2:latency ;
 		lv2:portProperty lv2:reportsLatency , lv2:integer;
 		units:unit units:frame ;
-	] .
+	] ;
+        
+        patch:writable 
+                plugin:wavetable_spf ,
+                plugin:wavetable_data ;
+                
+        state:state
+        [
+                plugin:wavetable_spf 1 ;
+                plugin:wavetable_data 
+                [
+			a atom:Vector ;
+			atom:childType atom:Double ;
+			rdf:value ()
+		]
+        ] .

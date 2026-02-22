@@ -334,6 +334,7 @@ void BVibratrGUI::onConfigureRequest (BEvents::Event* event)
 
 void BVibratrGUI::sendWavetablePath(const std::string path)
 {
+	if (path.empty()) return;
 	if (path.length() > 924)
 	{
 		std::cerr << "File path \"" << path << "\" too long." << std::endl;
@@ -346,17 +347,33 @@ void BVibratrGUI::sendWavetablePath(const std::string path)
 	lv2_atom_forge_set_buffer(&forge, obj_buf, sizeof(obj_buf));
 	LV2_Atom_Forge_Frame frame;
 	LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Set);
-	if
-	(
-		msg &&
+	if (msg &&
 		lv2_atom_forge_key(&forge, urids.patch_subject) &&
 		lv2_atom_forge_urid(&forge, urids.bvibratr) &&
 		lv2_atom_forge_key(&forge, urids.patch_property) &&
-		lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable) &&
+		lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable_path) &&
 		lv2_atom_forge_key(&forge, urids.patch_value) &&
 		lv2_atom_forge_path(&forge, path.c_str(), path.length() + 1)
 	) {} /* pass */
 	lv2_atom_forge_pop(&forge, &frame);
+	LV2_Atom* atom = reinterpret_cast<LV2_Atom*>(msg);
+	if (msg) write_function(controller, BVIBRATR_CONTROL_IN, lv2_atom_total_size(atom), urids.atom_eventTransfer, atom);
+}
+
+void BVibratrGUI::sendPatchGet()
+{
+	LV2_Atom_Forge forge;
+	lv2_atom_forge_init(&forge, map);
+	uint8_t obj_buf[256];
+	lv2_atom_forge_set_buffer(&forge, obj_buf, sizeof(obj_buf));
+	LV2_Atom_Forge_Frame frame;
+	LV2_Atom_Forge_Ref msg = lv2_atom_forge_object(&forge, &frame, 0, urids.patch_Get);
+	if (msg &&
+		lv2_atom_forge_key(&forge, urids.patch_subject) &&
+		lv2_atom_forge_urid(&forge, urids.bvibratr) &&
+		lv2_atom_forge_key(&forge, urids.patch_property) &&
+		lv2_atom_forge_urid(&forge, urids.bvibratr_wavetable)
+	) {} /* pass */
 	LV2_Atom* atom = reinterpret_cast<LV2_Atom*>(msg);
 	if (msg) write_function(controller, BVIBRATR_CONTROL_IN, lv2_atom_total_size(atom), urids.atom_eventTransfer, atom);
 }
@@ -776,6 +793,7 @@ static LV2UI_Handle instantiate (const LV2UI_Descriptor *descriptor, const char 
 
 	ui->controller = controller;
 	ui->write_function = write_function;
+	ui->sendPatchGet();
 	*widget = (LV2UI_Widget) ui->getNativeView ();
 	return (LV2UI_Handle) ui;
 }

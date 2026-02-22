@@ -12,6 +12,7 @@
 #include <lv2/core/lv2.h>
 #include <lv2/atom/atom.h>
 #include <lv2/atom/forge.h>
+#include <lv2/state/state.h>
 #include <lv2/worker/worker.h>
 #include <utility>
 
@@ -34,6 +35,8 @@ public:
 	void activate ();
 	void run (uint32_t n_samples);
 	void deactivate ();
+	LV2_State_Status state_save (LV2_State_Store_Function store, LV2_State_Handle handle, uint32_t flags, const LV2_Feature* const* features);
+	LV2_State_Status state_restore (LV2_State_Retrieve_Function retrieve, LV2_State_Handle handle, uint32_t flags, const LV2_Feature* const* features);
 	LV2_Worker_Status work (LV2_Worker_Respond_Function respond, LV2_Worker_Respond_Handle handle, uint32_t size, const void* data);
 	LV2_Worker_Status work_response (uint32_t size, const void* data);
 
@@ -48,8 +51,8 @@ private:
 	static void on_osc2_restart(LFO<double>& adsr, void* obj);
 	static void on_osc3_restart(LFO<double>& adsr, void* obj);
 	void play (uint32_t start, uint32_t end);
-	LV2_Atom_Forge_Ref forge_patch_wavetable(LV2_Atom_Forge& forge);
-	LV2_Atom_Forge_Ref forge_patch_spf(LV2_Atom_Forge& forge);
+	LV2_Atom_Forge_Ref forge_patch_wavetable(LV2_Atom_Forge& forge, const uint32_t n_elems, const double* data);
+	LV2_Atom_Forge_Ref forge_patch_spf(LV2_Atom_Forge& forge, const uint32_t spf);
 	bool garbage_collector(const Wavetable<>* ptr);
 	Atom_WT_Install work_new_wavetable();
 

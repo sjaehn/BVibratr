@@ -44,6 +44,7 @@ public:
 	~BVibratrGUI ();
 	void portEvent (uint32_t port_index, uint32_t buffer_size, uint32_t format, const void *buffer);
 	virtual void onConfigureRequest (BEvents::Event* event) override;
+	void sendPatchGet();
 
 	LV2UI_Controller controller;
 	LV2UI_Write_Function write_function;

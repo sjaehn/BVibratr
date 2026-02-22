@@ -205,17 +205,17 @@ request or notifying me (issue report, e-mail, ...).
   * Wavetable file chooser
 * Autoplay (no trigger channels set)
 * Documentation (incomplete)
-* Waweform: saw
+* Waveform: saw
 * Used-defined waveforms
   * Calculate integrals of pitch wavetables
   * Wavetable "oscillator"
   * Communicate wavetables from UI to DSP (and vice versa)
+  * Store and restore wavetables
 
 
 ## TODOs
 
 * Used-defined waveforms
-  * Store and restore wavetables
   * Import wavetables from wav
   * Simple tools for wavetable manipulation
 * Internationalization
