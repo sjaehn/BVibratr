@@ -126,6 +126,13 @@ public:
     */
     T get_integral () const;
 
+    /**
+    Gets the current position within a LFO phase as the sum of phase plus
+    phase shift.
+    @return Position.
+     */
+    T get_position () const;
+
     /** 
     Tests if the LFO object is running or not.
     @return True if running, otherwise false.
@@ -354,6 +361,8 @@ template <class T> inline T LFO<T>::get_integral () const
         default:        return 0.0;
     }
 }
+
+template <class T> inline T LFO<T>::get_position () const {return phase_ + shift_ - (waveform_ != WAVETABLE) * floor(phase_ + shift_);}
 
 template <class T> inline bool LFO<T>::is_active () const {return active_;}
 

@@ -258,6 +258,7 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 				}
 				else wt->clear();
 				wavetableWidget.setWavetable(*wt);
+				wavetableWidget.unselect();
 				drawWaveform();
 				if (wt->get_total_samples() > 1) noWavetableLabel.hide();
 				else noWavetableLabel.show();
@@ -272,10 +273,18 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 				*wt = wavetableWidget.getWavetable();
 				wt->set_samples_per_frame(ival->body);
 				wavetableWidget.setWavetable(*wt);
+				wavetableWidget.unselect();
 				drawWaveform();
 				if (wt->get_total_samples() > 1) noWavetableLabel.hide();
 				else noWavetableLabel.show();
 				delete wt;
+			}
+
+			else if ((patch.get_property_type(atom) == urids.bvibratr_wavetable_pos) && val && (val->type == urids.atom_Double))
+			{
+				const LV2_Atom_Double* dval = reinterpret_cast<const LV2_Atom_Double*>(val);
+				const double value = dval->body;
+				wavetableWidget.select(static_cast<size_t>(std::max(value, 0.0)));
 			}
 		}
 	}

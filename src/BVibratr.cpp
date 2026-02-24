@@ -233,6 +233,14 @@ void BVibratr::run (uint32_t n_samples)
 		}
 	}
 
+	if (oscx3.osc1.get_waveform() == LFO<double>::WAVETABLE)
+	{
+		const double pos = oscx3.osc1.get_position();
+		if (lv2_atom_forge_frame_time(&forge, 0) &&
+			patch.write_patch_Set_Double(forge, urids.bvibratr, urids.bvibratr_wavetable_pos, pos))
+		{} /* pass */
+	}
+
 	// Close CONTROL_OUT
 	lv2_atom_forge_pop(&forge, &frame);
 }
