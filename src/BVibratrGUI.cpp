@@ -248,28 +248,34 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 				const LV2_Atom_Vector* vec = reinterpret_cast<const LV2_Atom_Vector*>(val);
 				const size_t n_elems = (vec->atom.size - sizeof(LV2_Atom_Vector_Body)) / sizeof(double);
 				const double* values = reinterpret_cast<const double*>(LV2_ATOM_CONTENTS_CONST(LV2_Atom_Vector, vec));
-				Wavetable<> wt;
+				Wavetable<>* wt = new (std::nothrow) Wavetable<>;
+				if (!wt) {std::cerr << "bad_alloc\n"; return;}
+				*wt = wavetableWidget.getWavetable();
 				if (n_elems > 1) 
 				{
-					const size_t frame_sz = std::min(wt.get_samples_per_frame(), n_elems);
-					wt.from_samples<double>(values, frame_sz, n_elems);
+					const size_t frame_sz = std::min(wt->get_samples_per_frame(), n_elems);
+					wt->from_samples<double>(values, frame_sz, n_elems);
 				}
-				else wt.clear();
-				wavetableWidget.setWavetable(wt);
+				else wt->clear();
+				wavetableWidget.setWavetable(*wt);
 				drawWaveform();
-				if (wt.get_total_samples() > 1) noWavetableLabel.hide();
+				if (wt->get_total_samples() > 1) noWavetableLabel.hide();
 				else noWavetableLabel.show();
+				delete wt;
 			}
 
 			else if ((patch.get_property_type(atom) == urids.bvibratr_wavetable_spf) && val && (val->type == urids.atom_Int))
 			{
 				const LV2_Atom_Int* ival = reinterpret_cast<const LV2_Atom_Int*>(val);
-				Wavetable<> wt = wavetableWidget.getWavetable();
-				wt.set_samples_per_frame(ival->body);
-				wavetableWidget.setWavetable(wt);
+				Wavetable<>* wt = new (std::nothrow) Wavetable<>;
+				if (!wt) {std::cerr << "bad_alloc\n"; return;}
+				*wt = wavetableWidget.getWavetable();
+				wt->set_samples_per_frame(ival->body);
+				wavetableWidget.setWavetable(*wt);
 				drawWaveform();
-				if (wt.get_total_samples() > 1) noWavetableLabel.hide();
+				if (wt->get_total_samples() > 1) noWavetableLabel.hide();
 				else noWavetableLabel.show();
+				delete wt;
 			}
 		}
 	}
