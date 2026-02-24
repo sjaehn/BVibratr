@@ -3,10 +3,12 @@
 
 #include "BWidgets/BWidgets/EditLabel.hpp"
 #include "BWidgets/FileChooser.hpp"
+#include "Wavetable.hpp"
 #include "WavetableWidget.hpp"
 #include <cairo/cairo.h>
 #include <cstddef>
 #include <exception>
+#include <new>
 #include <string>
 
 #ifndef BWIDGETS_DEFAULT_WAVETABLECHOOSER_WIDTH
@@ -243,16 +245,36 @@ inline void WavetableChooser::setFileName (const std::string& filename)
 		std::string newPath = getPath() + "/" + filename;
 		char buf[PATH_MAX];
 		char *rp = realpath(newPath.c_str(), buf);
-		Wavetable<> wt;
-		try {wt.from_wvt(std::string(rp));}
-		catch (std::exception& exc)
+		Wavetable<>* wt = new (std::nothrow) Wavetable<>();
+		if (!wt) return;	// Bad alloc: Skip
+
+		std::string err = "";
+
+		// Try to load from sndfile
+		try {wt->from_soundfile(std::string(rp));}
+		catch (std::exception& exc) {err = exc.what();}
+
+		// Try to load from .wvt
+		if (!err.empty())
 		{
-			std::cerr << "Can't interpret " << filename << " as a .wvt file. " << exc.what() << ".\n";
+			err = "";
+			try {wt->from_wvt(std::string(rp));}
+			catch (std::exception& exc) {err = exc.what();}
+		}
+
+		// Both failed: Empty wavetable
+		if (!err.empty())
+		{
+			wt->clear();
+			//std::cerr << "Can't interpret " << filename << ". " << err << "\n";
 			noFileLabel.setText (BUtilities::Dictionary::get ("No preview"));
 		}
-		wavetable.setWavetable(wt);
+
+		wavetable.setWavetable(*wt);
 		spfEdit.setText(std::to_string(wavetable.getWavetable().get_samples_per_frame()));
 		update();
+
+		delete wt;
 	}
 }
 

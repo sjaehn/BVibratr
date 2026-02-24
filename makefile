@@ -20,15 +20,17 @@ GUI_CXX_INCL = #src/BWidgets/BUtilities/vsystem.cpp
 
 # pkg-config
 PKG_CONFIG ?= pkg-config
-GUI_LIBS += lv2 x11 cairo
+GUI_LIBS += lv2 x11 cairo sndfile
 LV2_LIBS += lv2
+SND_LIBS += sndfile # TODO make it static too
 ifneq ($(shell $(PKG_CONFIG) --exists fontconfig || echo no), no)
   override GUI_LIBS += fontconfig
   override GUIPPFLAGS += -DPKG_HAVE_FONTCONFIG
 endif
 DSPCFLAGS += `$(PKG_CONFIG) --cflags --static $(LV2_LIBS)`
+DSPCFLAGS += `$(PKG_CONFIG) --cflags $(SND_LIBS)`
 GUICFLAGS += -I$(CURDIR)/src/BWidgets/include `$(PKG_CONFIG) --cflags --static $(GUI_LIBS)`
-DSPLIBS += -Wl,-Bstatic -lm `$(PKG_CONFIG) --libs --static $(LV2_LIBS)` -Wl,-Bdynamic
+DSPLIBS += -Wl,-Bstatic -lm `$(PKG_CONFIG) --libs --static $(LV2_LIBS)` -Wl,-Bdynamic `$(PKG_CONFIG) --libs $(GUI_LIBS)`
 GUILIBS += -Wl,-Bstatic -lbwidgetscore -lcairoplus -lpugl -lm -Wl,-Bdynamic `$(PKG_CONFIG) --libs $(GUI_LIBS)`
 
 # complile
@@ -59,6 +61,10 @@ ifeq ($(shell $(PKG_CONFIG) --exists 'x11 >= 1.6.0' || echo no), no)
 endif
 ifeq ($(shell $(PKG_CONFIG) --exists 'cairo >= 1.12.0' || echo no), no)
   $(error cairo >= 1.12.0 not found. Please install cairo >= 1.12.0 first.)
+endif
+
+ifeq ($(shell $(PKG_CONFIG) --exists 'sndfile > 1.0.18' || echo no), no)
+  $(error sndfile >= 1.0.18 not found. Please install sndfile >= 1.0.18 first.)
 endif
 
 $(BUNDLE): clean $(DSP_OBJ) $(GUI_OBJ)

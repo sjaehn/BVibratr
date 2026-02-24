@@ -14,6 +14,7 @@
 #include <lv2/atom/util.h>
 #include <lv2/midi/midi.h>
 #include <lv2/state/state.h>
+#include <lv2/worker/worker.h>
 #include <new>
 
 #define SQRT_12_2 (pow (2.0, 1.0 / 12.0))
@@ -563,17 +564,40 @@ LV2_Worker_Status BVibratr::work (LV2_Worker_Respond_Function respond, LV2_Worke
 			const LV2_Atom* watom = patch.get_value_atom(atom);
 			if (watom && (watom->type == urids.atom_Path))
 			{
-				// Load wavetable to worker_wt
+				// Load new wavetable
 				const char* path = reinterpret_cast<const char*>(LV2_ATOM_BODY_CONST(watom));
-				try{worker_wt.from_wvt(std::string(path));}
-				catch (std::exception &exc) {fprintf(stderr, "%s\n", exc.what());}
+				Wavetable<>* wt = new (std::nothrow) Wavetable<>();
+				if (!wt) return LV2_WORKER_ERR_NO_SPACE;
 
-				// Copy, integrate, and pack pointers to Atom_WT_Install
-				const Atom_WT_Install msg = work_new_wavetable();
+				std::string err = "";
 
-				// Send whole Atom_WT_Install to LFO1 via work_response
-				const LV2_Atom* msg_ptr = reinterpret_cast<const LV2_Atom*>(&msg);
-				if (msg.wts.first && msg.wts.second) respond(handle, lv2_atom_total_size(msg_ptr), msg_ptr);
+				// Try to load from sndfile
+				try {wt->from_soundfile(std::string(path));}
+				catch (std::exception& exc) {err = exc.what();}
+
+				// Try to load from .wvt
+				if (!err.empty())
+				{
+					err = "";
+					try {wt->from_wvt(std::string(path));}
+					catch (std::exception& exc) {err = exc.what();}
+				}
+
+				// On success
+				if (err.empty())
+				{
+					worker_wt = *wt;
+
+					// Copy, integrate, and pack pointers to Atom_WT_Install
+					const Atom_WT_Install msg = work_new_wavetable();
+
+					// Send whole Atom_WT_Install to LFO1 via work_response
+					const LV2_Atom* msg_ptr = reinterpret_cast<const LV2_Atom*>(&msg);
+					if (msg.wts.first && msg.wts.second) respond(handle, lv2_atom_total_size(msg_ptr), msg_ptr);
+
+				}
+
+				delete wt;
 			}
 		}
 

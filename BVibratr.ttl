@@ -64,7 +64,7 @@ plugin:wavetable_data
                 lv2:designation lv2:control;
                 atom:bufferType atom:Sequence ;
                 atom:supports time:Position , midi:MidiEvent , patch:Message ;
-                rsz:minimumSize 65536 ;
+                rsz:minimumSize 1280 ;
                 lv2:index 0 ;
                 lv2:symbol "control_in" ;
                 lv2:name "Control in" ;
@@ -75,6 +75,7 @@ plugin:wavetable_data
                 atom:bufferType atom:Sequence ;
                 lv2:designation lv2:control ;
                 atom:supports patch:Message ;
+                rsz:minimumSize 263168 ; # 256 kB for up to 32768 double samples + 1 kB for other data and Atom overhang 
                 lv2:index 1 ;
                 lv2:symbol "control_out" ;
                 lv2:name "Control_out" ;

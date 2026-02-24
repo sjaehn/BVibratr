@@ -141,13 +141,15 @@ and the tremolo amount.
 ### Appendix: Wavetables
 
 You can import (low frequency) wavetables into B.Vibratr from simple .wvt text 
-files. It contains one floating point value on each line for each sample. For 
-more details see [wvt.md](doc/wvt.md).
+files. It contains one floating point value on each line for each sample. Up 
+to 32768 total samples per wavetable are allowed. For more details see 
+[wvt.md](doc/wvt.md).
 
-TODO: You can also import wavetables created for other synthesizers in the 
+You can also import wavetables created for other synthesizers in the 
 .wav or other audio formats. They often have got 256, 512, 1024, 2048 or even
 more samples per frame depending on the synthesizer created for and the
-respective specification.
+respective specification. B.Vibratr supports these wavetables with a max size 
+limit of 32768.
 
 The uploaded wavetables are used by the B.Vibratr algorithm to calculate
 mathematical integral wavetables which are then used by the oscillator OSC1.
@@ -211,13 +213,12 @@ request or notifying me (issue report, e-mail, ...).
   * Wavetable "oscillator"
   * Communicate wavetables from UI to DSP (and vice versa)
   * Store and restore wavetables
+  * Import wavetables from audio files (incl. Serum wavetables)
 
 
 ## TODOs
 
-* Used-defined waveforms
-  * Import wavetables from wav
-  * Simple tools for wavetable manipulation
+* Simple tools for wavetable manipulation
 * Internationalization
 * Presets
 * Documentation

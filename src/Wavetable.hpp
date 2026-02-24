@@ -6,11 +6,13 @@
 #include <cctype>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include "sndfile.h"
 
 /**
 Template class for wavetable data. A %Wavetable consists of a number of frames
@@ -18,10 +20,16 @@ and each frame consists of a number of samples.
 @tparam T   Element (floating point) data type.
 @tparam N   Capacity (max number of elements). Must be at least 1.    
 */
-template<class T = double, size_t N = 0x10000>
+template<class T = double, size_t N = 0x8000>
 class Wavetable : protected std::array<T, N>
 {
 public:
+
+    /**
+    Error codes are produced on error by the realtime methods of this class
+    and are stored until read by read_error().
+    @note The non-relatime methods may throw exceptions instead.
+     */
     enum ErrorCode 
     {
         NO_ERROR = 0, 
@@ -151,6 +159,15 @@ public:
     @param path     Path of the .wvt file.
      */
     void from_wvt(const std::string& path);
+
+    /**
+    Loads a soundfile and uses its audio data as a mono wavetable. Looks also
+    for additional wavetable information, including the Serum clm chunk.
+    @note   This method is NOT realtime-safe. Do NOT use it in a realtime
+    thread.
+    @param path     Path of the .wvt file.
+     */
+    void from_soundfile(const std::string& path);
 
     /**
     Loads a %Wavetable from samples data with a defined frame size performing
@@ -380,7 +397,7 @@ template<class T, size_t N> void inline Wavetable<T, N>::from_string(const char*
     }
 
     // Validate spf
-    set_samples_per_frame(spf);
+    if (wt_size_) set_samples_per_frame(spf);
 }
 
 template<class T, size_t N> void inline Wavetable<T, N>::from_string(const std::string& s, size_t spf)
@@ -404,6 +421,85 @@ template<class T, size_t N> void inline Wavetable<T, N>::from_wvt(const std::str
     }
 }
 
+template<class T, size_t N> void inline Wavetable<T, N>::from_soundfile(const std::string& path)
+{
+    struct ChunkClm
+    {
+        // id = "clm "
+        // size = 48
+        char tag[3];
+        char samples_per_frame_str[4];
+        char seperator_1 = ' ';
+        char flag_interpolationg = '0';
+        char flag_serum = '0';
+        char flag_3 = '0';
+        char flag_4 = '0';
+        char flag_5 = '0';
+        char flag_6 = '0';
+        char flag_7 = '0';
+        char flag_8 = '0';
+        char seperator_2 = ' ';
+        char brand[31];
+    };
+    size_t spf = 128;
+
+    // Open the audio file and validate
+    SF_INFO sfinfo{};
+    SNDFILE* sndfile = sf_open(std::string{path}.c_str(), SFM_READ, &sfinfo);
+    if (sf_error (sndfile) != SF_ERR_NO_ERROR) throw std::invalid_argument (std::string (sf_strerror (sndfile)));
+    if (!sfinfo.frames) throw std::invalid_argument ("Empty sample file " + path + ".");
+    if (sfinfo.frames > sf_count_t(N)) throw std::invalid_argument ("Sample file " + path + " exceeds limit of " + std::to_string(N) + " samples.");
+
+    // Look for wavetable metadata in the Serum clm chunk
+    // Optional data, therefore don't throw exceptions
+    SF_CHUNK_INFO chinfo = {"clm ", 4, 0, nullptr};
+    SF_CHUNK_ITERATOR *chiter = sf_get_chunk_iterator(sndfile, &chinfo);
+    if (chiter && 
+        (sf_get_chunk_size(chiter, &chinfo) == SF_ERR_NO_ERROR) &&
+        (chinfo.datalen == 48))
+    {
+        ChunkClm clm;
+        chinfo.data = &clm;
+        int err = sf_get_chunk_data(chiter, &chinfo);
+        if (err == SF_ERR_NO_ERROR)
+        {
+            char spf_str[5]; 
+            memcpy(spf_str, clm.samples_per_frame_str, 4);
+            spf_str[4] = 0;
+            size_t count = 0;
+            size_t spf_raw = std::stoi(spf_str, &count);
+            if (count) spf = std::clamp(spf_raw, size_t(1), N);
+        }
+    }
+
+    // Copy audio data
+    float* data = (float*) malloc (sizeof(float) * sfinfo.frames * sfinfo.channels);
+    if (!data)
+    {
+        sf_close (sndfile);
+        throw std::bad_alloc();
+    }
+
+    sf_seek (sndfile, 0, SEEK_SET);
+    sf_read_float (sndfile, data, sfinfo.frames * sfinfo.channels);
+
+    // Translate audio data
+    clear();
+    wt_size_ = sfinfo.frames;
+    for (size_t i = 0; i < wt_size_; ++i)
+    {
+        T sample = 0.0f;
+        for (int ch = 0; ch < sfinfo.channels; ++ch) sample += data[i * sfinfo.channels + ch];
+        operator[](i) = sample / sfinfo.channels;
+    }
+
+    free(data);
+    sf_close (sndfile);
+
+    set_samples_per_frame(spf);
+
+}
+
 
 template<class T, size_t N>
 template<class T2>
@@ -424,6 +520,7 @@ inline void Wavetable<T, N>::from_samples(const T* samples, const size_t frame_s
     if ((!total_sz) || (!frame_sz)) return;
 
     wt_size_ = std::min(N, total_sz);
+    if (total_sz > N) wt_err_ = WAVETABLE_OVERFLOW;
     memcpy(this->data(), samples, wt_size_ * sizeof(T));
 
     // Set spf_ and validate
