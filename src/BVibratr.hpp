@@ -47,9 +47,6 @@ private:
 	void on_midi_cc (const uint8_t channel, const uint8_t cc, const uint8_t param);
 	void on_midi (const uint8_t* const msg);
 	void osc1_set_waveform();
-	static void on_osc1_restart(LFO<double>& adsr, void* obj);
-	static void on_osc2_restart(LFO<double>& adsr, void* obj);
-	static void on_osc3_restart(LFO<double>& adsr, void* obj);
 	void play (uint32_t start, uint32_t end);
 	bool garbage_collector(const Wavetable<>* ptr);
 	Atom_WT_Install work_new_wavetable();

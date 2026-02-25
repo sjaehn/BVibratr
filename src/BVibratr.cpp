@@ -65,10 +65,6 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	buffer_2.fill(0.0f);
 
 	oscx3.osc1.garbage_collector = [this](const Wavetable<>* ptr){return garbage_collector(ptr);};
-
-	oscx3.osc1.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc1_restart, this);
-	oscx3.osc2.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc2_restart, this);
-	oscx3.osc3.setCallbackFunction(LFO<double>::PHASE_RESTART, &on_osc3_restart, this);
 }
 
 BVibratr::~BVibratr () {}
@@ -150,11 +146,20 @@ void BVibratr::run (uint32_t n_samples)
 
 				case BVIBRATR_OSC1_MODE:
 				case BVIBRATR_OSC1_WAVEFORM:
+					oscx3.mode1 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC1_MODE]);
 					osc1_set_waveform();
+					break;
+
+				case BVIBRATR_OSC2_MODE:
+					oscx3.mode2 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC2_MODE]);
 					break;
 
 				case BVIBRATR_OSC2_WAVEFORM:
 					oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(value));
+					break;
+
+				case BVIBRATR_OSC3_MODE:
+					oscx3.mode3 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC3_MODE]);
 					break;
 
 				case BVIBRATR_OSC3_WAVEFORM:
@@ -221,7 +226,7 @@ void BVibratr::run (uint32_t n_samples)
 	// Update CONTROL_OUT
 	if (notify)
 	{
-		const Wavetable<>* wt = oscx3.osc1.get_latest_wavetable();
+		const Wavetable<>* wt = oscx3.osc1.get_wavetable();
 		if (wt)
 		{
 			notify = false;
@@ -251,11 +256,6 @@ void BVibratr::start()
 						 controllers[BVIBRATR_DEPTH_DECAY],
 						 controllers[BVIBRATR_DEPTH_SUSTAIN],
 						 controllers[BVIBRATR_DEPTH_RELEASE]);
-
-	osc1_set_waveform();
-	oscx3.osc2.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC2_WAVEFORM]));
-	oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(controllers[BVIBRATR_OSC3_WAVEFORM]));
-
 	adsr.start();
 	oscx3.start();
 }
@@ -346,24 +346,6 @@ void BVibratr::osc1_set_waveform()
 															   0));
 }
 
-void BVibratr::on_osc1_restart(LFO<double>& adsr, void* obj)
-{
-	BVibratr* plugin = static_cast<BVibratr*>(obj);
-	plugin->oscx3.mode1 = static_cast<BVibratrOscModes>(plugin->controllers[BVIBRATR_OSC1_MODE]);
-}
-
-void BVibratr::on_osc2_restart(LFO<double>& adsr, void* obj)
-{
-	BVibratr* plugin = static_cast<BVibratr*>(obj);
-	plugin->oscx3.mode2 = static_cast<BVibratrOscModes>(plugin->controllers[BVIBRATR_OSC2_MODE]);
-}
-
-void BVibratr::on_osc3_restart(LFO<double>& adsr, void* obj)
-{
-	BVibratr* plugin = static_cast<BVibratr*>(obj);
-	plugin->oscx3.mode3 = static_cast<BVibratrOscModes>(plugin->controllers[BVIBRATR_OSC3_MODE]);
-}
-
 void BVibratr::play (uint32_t start, uint32_t end)
 {
 	const double sample_time = 1.0 / rate;
@@ -381,16 +363,8 @@ void BVibratr::play (uint32_t start, uint32_t end)
 		double signal = 0.0;
 		double integral = 0.0;
 
-		// Set modes if adsr (and thus all lfos) is stopped
-		if (!adsr.is_active())
-		{
-			oscx3.mode1 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC1_MODE]);
-			oscx3.mode2 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC2_MODE]);
-			oscx3.mode3 = static_cast<BVibratrOscModes>(controllers[BVIBRATR_OSC3_MODE]);
-		}
-
 		// Only run oscillators if adsr is active
-		else 
+		if (adsr.is_active())
 		{
 			oscx3.run(sample_time);
 			signal = oscx3.get_value();

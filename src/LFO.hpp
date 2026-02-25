@@ -64,11 +64,8 @@ public:
     Waveform get_waveform () const;
 
     /**
-    Sets the pointers to wavetable data and its integral wavetable and 
-    schedules wavetable change. This will take effect immediately if the LFO
-    phase is 0.0. Otherwise the wavetable change is scheduled until the start
-    of the next phase. This method does NOT schedule a switch to the wavetable
-    mode.
+    Sets the pointers to new wavetable data and its integral wavetable. This
+    method does NOT switch to the wavetable mode.
     
     @note This method does NOT copy any data, only pointers.
 
@@ -78,13 +75,11 @@ public:
     void set_wavetable_data(const Wavetable<T>* wavetable, const Wavetable<T>* integral_wavetable_);
 
     /**
-    Gets (a pointer to) the lastest wavetable. This means, if there is a 
-    scheduled wavetable, then you will get the scheduled one, otherwise the
-    installed wavetable. If there is neither a scheduled nor an installed
-    wavetable, then nullptr is returned.
+    Gets (a pointer to) the wavetable. If there isn't an installed wavetable,
+    then nullptr is returned.
     @return             Pointer to the latest wavetable.
      */
-    const Wavetable<>* get_latest_wavetable() const;
+    const Wavetable<>* get_wavetable() const;
 
     /**
     Sets a phase offset.
@@ -99,17 +94,17 @@ public:
     T get_phase_shift () const;
 
     /**
-    Starts the LFO and applies scheduled changes.
+    Starts the LFO.
     */
     void start ();
 
     /**
-    Stops the LFO and applies scheduled changes.
+    Stops the LFO.
     */
     void stop ();
 
     /**
-    Proceeds the LFO. Applies scheduled changes in the case of a phase switch.
+    Proceeds the LFO.
     @param time Time in phases.
     */
     void run (const T time);
@@ -163,24 +158,14 @@ public:
 
 protected:
     Waveform waveform_;
-    Waveform scheduled_waveform_;
-    const Wavetable<T> *wavetable_, *scheduled_wavetable_;
-    const Wavetable<T> *integral_wavetable_, *scheduled_integral_wavetable_;
+    const Wavetable<T> *wavetable_;
+    const Wavetable<T> *integral_wavetable_;
     T freq_;
     T phase_;
     T shift_;
     bool active_;
 
     std::array<std::pair<std::function<void(LFO<T>&, void*)>, void*>, STOP + 1> callbacks_;
-
-    /**
-    Tries to apply scheduled wavetable data. In this case, the pointers to the
-    current wavetable (and integral wavetable) are replaced by the scheduled
-    pointers. Just before, the pointers to the previos wavetable (and integral
-    wavetable) are sent to the garbage collector to be removed in the next
-    worker cycle.
-     */
-    void apply_scheduled_wavetable_data_();
 
     /**
     Distributes the events of this objects by calling the respective callback function together with a reference to 
@@ -202,11 +187,8 @@ template <class T> inline LFO<T>::LFO () : LFO (SINE, 1.0) {}
 template <class T> inline LFO<T>::LFO (const Waveform waveform, const T freq) : 
     garbage_collector([](const Wavetable<>* ptr){return true;}),
     waveform_(waveform), 
-    scheduled_waveform_(waveform), 
     wavetable_(nullptr),
-    scheduled_wavetable_(nullptr),
     integral_wavetable_(nullptr),
-    scheduled_integral_wavetable_(nullptr),
     freq_(freq), 
     phase_(0.0), 
     shift_(0.0),
@@ -218,44 +200,31 @@ template <class T> inline LFO<T>::LFO (const Waveform waveform, const T freq) :
 template <class T> inline LFO<T>::~LFO()
 {
     schedule_delete_wavetable(wavetable_);
-    schedule_delete_wavetable(scheduled_wavetable_);
     schedule_delete_wavetable(integral_wavetable_);
-    schedule_delete_wavetable(scheduled_integral_wavetable_);
 }
 
 template <class T> inline void LFO<T>::schedule_delete_wavetable(const Wavetable<>* ptr)
 {
-    if (!ptr) return;
-    garbage_collector(ptr);
+    if (ptr) garbage_collector(ptr);
 }
 
 template <class T> inline void LFO<T>::set_frequency (const T freq) {freq_ = freq;}
 
 template <class T> inline T LFO<T>::get_frequency () const {return freq_;}
 
-template <class T> inline void LFO<T>::set_waveform (const Waveform waveform) 
-{
-    scheduled_waveform_ = waveform;
-    if (phase_ == 0.0) waveform_ = waveform;
-}
+template <class T> inline void LFO<T>::set_waveform (const Waveform waveform) {waveform_ = waveform;}
     
 template <class T> inline typename LFO<T>::Waveform LFO<T>::get_waveform () const {return waveform_;}
 
 template <class T> inline void LFO<T>::set_wavetable_data(const Wavetable<T>* wavetable, const Wavetable<T>* integral_wavetable)
 {
-    // (Other) wavetable already scheduled: delete
-    if (scheduled_wavetable_) schedule_delete_wavetable(scheduled_wavetable_);
-    if (scheduled_integral_wavetable_) schedule_delete_wavetable(scheduled_integral_wavetable_);
-    scheduled_wavetable_ = wavetable;
-    scheduled_integral_wavetable_ = integral_wavetable;
-
-    if (phase_ == 0.0) apply_scheduled_wavetable_data_();
+    if (wavetable_) schedule_delete_wavetable(wavetable_);
+    wavetable_ = wavetable;
+    if (integral_wavetable_) schedule_delete_wavetable(integral_wavetable_);
+    integral_wavetable_ = integral_wavetable;
 }
 
-template <class T> inline const Wavetable<>* LFO<T>::get_latest_wavetable() const
-{
-    return scheduled_wavetable_ ? scheduled_wavetable_ : wavetable_;
-}
+template <class T> inline const Wavetable<>* LFO<T>::get_wavetable() const {return wavetable_;}
 
 template <class T> inline void LFO<T>::set_phase_shift (const T shift) {shift_ = shift;}
 
@@ -264,7 +233,6 @@ template <class T> inline T LFO<T>::get_phase_shift () const {return shift_;}
 template <class T> inline void LFO<T>::start () 
 {
     phase_ = 0.0;
-    waveform_ = scheduled_waveform_;
     active_ = true;
     on_event_(START);
 }
@@ -272,7 +240,6 @@ template <class T> inline void LFO<T>::start ()
 template <class T> inline void LFO<T>::stop () 
 {
     phase_ = 0.0;
-    waveform_ = scheduled_waveform_;
     active_ = false;
     on_event_(STOP);
 }
@@ -283,8 +250,6 @@ template <class T> inline void LFO<T>::run (const T time)
 
     if (std::floor(phase_ + shift_ + time * freq_) != std::floor (phase_ + shift_)) 
     {
-        waveform_ = scheduled_waveform_;
-        apply_scheduled_wavetable_data_();
         on_event_(PHASE_RESTART);
     }
 
@@ -374,23 +339,6 @@ template <class T> void LFO<T>::setCallbackFunction(const typename LFO<T>::Event
 template <class T> void LFO<T>::removeCallbackFunction(const typename LFO<T>::Event event)
 {
     callbacks_[event] = std::pair<std::function<void(LFO<T>&, void*)>, void*>(&defaultCallback_, nullptr);
-}
-
-template <class T> void LFO<T>::apply_scheduled_wavetable_data_()
-{
-    if (scheduled_wavetable_)
-    {
-        if (wavetable_) schedule_delete_wavetable(wavetable_);
-        wavetable_ = scheduled_wavetable_;
-        scheduled_wavetable_ = nullptr;
-    }
-
-    if (scheduled_integral_wavetable_)
-    {
-        if (integral_wavetable_) schedule_delete_wavetable(integral_wavetable_);
-        integral_wavetable_ = scheduled_integral_wavetable_;
-        scheduled_integral_wavetable_ = nullptr;
-    }
 }
 
 template <class T> void LFO<T>::on_event_(const typename LFO<T>::Event event)
