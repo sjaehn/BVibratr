@@ -6,20 +6,28 @@
 #include <cctype>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 #include "sndfile.h"
+#include "le.hpp"
 
 /**
-Template class for wavetable data. A %Wavetable consists of a number of frames
-and each frame consists of a number of samples.
-@tparam T   Element (floating point) data type.
-@tparam N   Capacity (max number of elements). Must be at least 1.    
-*/
+ Template class for basic wavetable data. A %Wavetable consists of a number 
+ of frames and each frame consists of a number of samples.
+ @note Only basic features are supported. There is no between frames 
+ interpolation (only between samples) and there is no cross-fading at 
+ start/end. Looping is always supported. 
+ @tparam T   Element (floating point) data type.
+ @tparam N   Capacity (max number of elements). Must be at least 1.    
+ */
 template<class T = double, size_t N = 0x8000>
 class Wavetable : protected std::array<T, N>
 {
@@ -161,13 +169,33 @@ public:
     void from_wvt(const std::string& path);
 
     /**
+    Loads a .wt (Surge XT format).
+    @note   This method is NOT realtime-safe. Do NOT use it in a realtime
+    thread.
+    @param path     Path of the soundfile file.
+     */
+    void from_wt(const std::string& path);
+
+    /**
     Loads a soundfile and uses its audio data as a mono wavetable. Looks also
     for additional wavetable information, including the Serum clm chunk.
     @note   This method is NOT realtime-safe. Do NOT use it in a realtime
     thread.
-    @param path     Path of the .wvt file.
+    @param path     Path of the soundfile file.
      */
     void from_soundfile(const std::string& path);
+
+    /**
+    Loads %Wavetable data from any supported file in the order:
+    (1) Surge XT style wavetables (.wt),
+    (2) Serum style wavetables (.wav, with clm chunk using libsndfile),
+    (3) any soundfile (using libsndfile),
+    (4) any text file containing data in the .wvt format.
+    @note   This method is NOT realtime-safe. Do NOT use it in a realtime
+    thread.
+    @param path     Path of the soundfile file.
+     */
+    void from_file(const std::string& path);
 
     /**
     Loads a %Wavetable from samples data with a defined frame size performing
@@ -411,14 +439,90 @@ template<class T, size_t N> void inline Wavetable<T, N>::from_wvt(const std::str
     std::ifstream file(path);
 
     if (!file.is_open()) throw std::invalid_argument("Can't open file " + path + ".");
-    else
-    {
-        std::string line;
-        while (std::getline(file, line)) s += line + '\n';
+    
+    std::string line;
+    while (std::getline(file, line)) s += line + '\n';
 
+    file.close();
+    from_string(s);
+}
+
+template<class T, size_t N> void inline Wavetable<T, N>::from_wt(const std::string& path)
+{
+    /**
+    File header of .wt files
+    See also https://github.com/surge-synthesizer/surge/blob/main/resources/data/wavetables/WT%20fileformat.txt
+     */
+    struct HeaderVawt
+    {
+        char id[4];         // "vawt"
+        le32_t wave_size;   // 2^n up to 4096 = spf
+        le16_t wave_count;  // up to 512 = frames
+        le16_t flags;
+    };
+
+    enum WtFlags
+    {
+        WT_FORMAT_INT16         = 0x0004,
+        WT_INT_USE_16_BITS      = 0x0008    // Ignored yet
+    };
+
+    const char vawt[4] = {'v', 'a', 'w', 't'};
+
+    std::filesystem::path inputFilePath{path};
+    size_t file_size = std::filesystem::file_size(inputFilePath);
+    if (file_size < sizeof(HeaderVawt)) throw std::invalid_argument ("Empty .wt file " + path + ".");
+
+    std::ifstream file(path, std::ios_base::binary);
+    if (!file.is_open()) throw std::invalid_argument("Can't open file " + path + ".");
+
+    // Load header
+    HeaderVawt header;
+    file.read(reinterpret_cast<char*>(&header), sizeof(HeaderVawt));
+    if (strncmp(vawt, header.id, 4) != 0) 
+    {
         file.close();
-        from_string(s);
+        throw std::invalid_argument (path + " is not a .wt file.");
     }
+
+    size_t sample_size = 2 + 2 * (!(header.flags & WT_FORMAT_INT16));
+    size_t n_samples = header.wave_size * header.wave_count;
+    size_t buffer_size = sample_size * n_samples;
+    if (file_size < sizeof(HeaderVawt) + buffer_size)
+    {
+        file.close();
+        std::invalid_argument ("Corrupt .wt file " + path + ". Not enough data.");
+    }
+
+    if (n_samples > N)
+    {
+        file.close();
+        std::invalid_argument (".wt file " + path + " exceeds limit of " + std::to_string(N) + " samples.");
+    }
+
+    // Load data
+    std::vector<std::byte> buffer(buffer_size);
+    file.read(reinterpret_cast<char*>(buffer.data()), buffer_size);
+
+    // Transfer data
+    clear();
+    wt_size_ = n_samples;
+    
+    if (header.flags & WT_FORMAT_INT16)
+    {
+        const int16_t* samples_i16 = reinterpret_cast<const int16_t*>(buffer.data());
+        for (size_t i = 0; i < n_samples; ++i) operator[](i) = - static_cast<float>(samples_i16[i]) / static_cast<float>(0x8000);
+    }
+
+    else 
+    {
+        const float* samples_f = reinterpret_cast<const float*>(buffer.data());
+        for (size_t i = 0; i < n_samples; ++i) operator[](i) = samples_f[i];
+    }
+
+    file.close();
+    set_samples_per_frame(header.wave_size);
+
 }
 
 template<class T, size_t N> void inline Wavetable<T, N>::from_soundfile(const std::string& path)
@@ -447,8 +551,16 @@ template<class T, size_t N> void inline Wavetable<T, N>::from_soundfile(const st
     SF_INFO sfinfo{};
     SNDFILE* sndfile = sf_open(std::string{path}.c_str(), SFM_READ, &sfinfo);
     if (sf_error (sndfile) != SF_ERR_NO_ERROR) throw std::invalid_argument (std::string (sf_strerror (sndfile)));
-    if (!sfinfo.frames) throw std::invalid_argument ("Empty sample file " + path + ".");
-    if (sfinfo.frames > sf_count_t(N)) throw std::invalid_argument ("Sample file " + path + " exceeds limit of " + std::to_string(N) + " samples.");
+    if (!sfinfo.frames) 
+    {
+        sf_close (sndfile);
+        throw std::invalid_argument ("Empty sample file " + path + ".");
+    }
+    if (sfinfo.frames > sf_count_t(N)) 
+    {
+        sf_close (sndfile);
+        throw std::invalid_argument ("Sample file " + path + " exceeds limit of " + std::to_string(N) + " samples.");
+    }
 
     // Look for wavetable metadata in the Serum clm chunk
     // Optional data, therefore don't throw exceptions
@@ -498,6 +610,35 @@ template<class T, size_t N> void inline Wavetable<T, N>::from_soundfile(const st
 
     set_samples_per_frame(spf);
 
+}
+
+template<class T, size_t N> void inline Wavetable<T, N>::from_file(const std::string& path)
+{
+    std::string err = "";
+
+    // Try to load from .wt
+    try {from_wt(path);}
+	catch (std::exception& exc) {err = exc.what();}
+		
+
+    // Try to load from .wav and any other sound file
+    if (!err.empty())
+    {
+        err = "";
+        try {from_soundfile(path);}
+        catch (std::exception& exc) {err = exc.what();} 
+    }
+
+    // Try to load from .wvt text file
+    if (!err.empty())
+    {
+        err = "";
+        try {from_wvt(path);}
+        catch (std::exception& exc) {err = exc.what();}
+    }
+
+    // All failed: Throw an exception
+    if (!err.empty()) throw std::invalid_argument(err);
 }
 
 

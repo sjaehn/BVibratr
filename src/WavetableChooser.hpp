@@ -248,25 +248,10 @@ inline void WavetableChooser::setFileName (const std::string& filename)
 		Wavetable<>* wt = new (std::nothrow) Wavetable<>();
 		if (!wt) return;	// Bad alloc: Skip
 
-		std::string err = "";
-
-		// Try to load from sndfile
-		try {wt->from_soundfile(std::string(rp));}
-		catch (std::exception& exc) {err = exc.what();}
-
-		// Try to load from .wvt
-		if (!err.empty())
-		{
-			err = "";
-			try {wt->from_wvt(std::string(rp));}
-			catch (std::exception& exc) {err = exc.what();}
-		}
-
-		// Both failed: Empty wavetable
-		if (!err.empty())
+		try {wt->from_file(std::string(rp));}
+		catch (std::exception& exc) 
 		{
 			wt->clear();
-			//std::cerr << "Can't interpret " << filename << ". " << err << "\n";
 			noFileLabel.setText (BUtilities::Dictionary::get ("No preview"));
 		}
 

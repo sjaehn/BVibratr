@@ -471,7 +471,7 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 	lv2_features_query (features, LV2_WORKER__schedule, &schedule, true, NULL);
     if (!schedule) 
 	{
-		fprintf(stderr, "Feature worker not provided by the host. Can't restore plugin state.");
+		fprintf(stderr, "Feature worker not provided by the host. Can't restore plugin state.\n");
 		return LV2_STATE_ERR_NO_FEATURE;
 	}
 
@@ -577,22 +577,13 @@ LV2_Worker_Status BVibratr::work (LV2_Worker_Respond_Function respond, LV2_Worke
 				Wavetable<>* wt = new (std::nothrow) Wavetable<>();
 				if (!wt) return LV2_WORKER_ERR_NO_SPACE;
 
-				std::string err = "";
+				bool err = 0;
 
-				// Try to load from sndfile
-				try {wt->from_soundfile(std::string(path));}
-				catch (std::exception& exc) {err = exc.what();}
-
-				// Try to load from .wvt
-				if (!err.empty())
-				{
-					err = "";
-					try {wt->from_wvt(std::string(path));}
-					catch (std::exception& exc) {err = exc.what();}
-				}
+				try {wt->from_file(std::string(path));}
+				catch (std::exception& exc) {err = true;}
 
 				// On success
-				if (err.empty())
+				if (!err)
 				{
 					worker_wt = *wt;
 

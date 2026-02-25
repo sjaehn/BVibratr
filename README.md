@@ -214,6 +214,7 @@ request or notifying me (issue report, e-mail, ...).
   * Communicate wavetables from UI to DSP (and vice versa)
   * Store and restore wavetables
   * Import wavetables from audio files (incl. Serum wavetables)
+  * Also support Surge XT .wt wavetables
 
 
 ## TODOs
