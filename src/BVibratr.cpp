@@ -409,11 +409,33 @@ void BVibratr::play (uint32_t start, uint32_t end)
 
 LV2_State_Status BVibratr::state_save (LV2_State_Store_Function store, LV2_State_Handle handle, uint32_t flags, const LV2_Feature* const* features)
 {
+	LV2_State_Map_Path* mapPath = nullptr;
+	LV2_State_Free_Path* freePath = nullptr;
+	lv2_features_query (features, 
+						LV2_STATE__mapPath, &mapPath, false, 
+						LV2_STATE__freePath, &freePath, false,
+						NULL);
+	if (!mapPath) 
+	{
+		fprintf(stderr, "BVibratr.lv2: Feature State:mapPath missing. Can't save state.");
+		return LV2_STATE_ERR_NO_FEATURE;
+	}
+
 	// Use worker_wt
 	// Store samples per frame as plain data
 	const int spf = worker_wt.get_samples_per_frame();
 	store(handle, urids.bvibratr_wavetable_spf, &spf, sizeof(spf), urids.atom_Int, LV2_STATE_IS_POD);
-	store(handle, urids.bvibratr_wavetable_path, wt_path, strnlen(wt_path, 1024), urids.atom_Path, LV2_STATE_IS_POD);
+
+	// Store wavetable path after converting to an abstract path.
+	char* abstrPath = mapPath->abstract_path(mapPath->handle, wt_path);
+	if (abstrPath)
+	{
+		store(handle, urids.bvibratr_wavetable_path, abstrPath, 
+			  strnlen(wt_path, 1024), urids.atom_Path, LV2_STATE_IS_POD);
+		if (freePath) freePath->free_path (freePath->handle, abstrPath);
+		else free(abstrPath);
+	}
+	
 	return LV2_STATE_SUCCESS;
 }
 
@@ -423,6 +445,18 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 	size_t   size;
 	uint32_t type;
 	uint32_t valflags;
+
+	LV2_State_Map_Path* mapPath = nullptr;
+	LV2_State_Free_Path* freePath = nullptr;
+	lv2_features_query (features, 
+						LV2_STATE__mapPath, &mapPath, false, 
+						LV2_STATE__freePath, &freePath, false,
+						NULL);
+	if (!mapPath) 
+	{
+		fprintf(stderr, "BVibratr.lv2: Feature State:mapPath missing. Can't save state.");
+		return LV2_STATE_ERR_NO_FEATURE;
+	}
 
 	// Restore samples per frame
 	const void* spf = retrieve(handle, urids.bvibratr_wavetable_spf, &size, &type, &valflags);
@@ -440,13 +474,18 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 	const void* path = retrieve(handle, urids.bvibratr_wavetable_path, &size, &type, &valflags);
 	if (path && (type == urids.atom_Path)) 
 	{
-		const char* c = reinterpret_cast<const char*>(path);
-		LV2_Atom_Forge forge;
-		lv2_atom_forge_init(&forge, map);
-		uint8_t buf[1280];
-		lv2_atom_forge_set_buffer(&forge, buf, sizeof(buf));
-		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(patch.write_patch_Set_Path(forge, urids.bvibratr, urids.bvibratr_wavetable_path, strnlen(c, 1024), c));
-		if (atom) workerSchedule->schedule_work(workerSchedule->handle, lv2_atom_total_size(atom), atom);
+		char* absPath  = mapPath->absolute_path (mapPath->handle, (char*)path);
+		if (absPath)
+		{
+			LV2_Atom_Forge forge;
+			lv2_atom_forge_init(&forge, map);
+			uint8_t buf[1280];
+			lv2_atom_forge_set_buffer(&forge, buf, sizeof(buf));
+			const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(patch.write_patch_Set_Path(forge, urids.bvibratr, urids.bvibratr_wavetable_path, strnlen(absPath, 1024), absPath));
+			if (atom) workerSchedule->schedule_work(workerSchedule->handle, lv2_atom_total_size(atom), atom);
+			if (freePath) freePath->free_path (freePath->handle, absPath);
+			else free(absPath);
+		}	
 	}
 
 	return LV2_STATE_SUCCESS;

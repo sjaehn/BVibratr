@@ -53,8 +53,8 @@ ifdef WWW_BROWSER_CMD
 endif
 
 # check lib versions
-ifeq ($(shell $(PKG_CONFIG) --exists 'lv2 >= 1.12.4' || echo no), no)
-  $(error lv2 >= 1.12.4 not found. Please install lv2 >= 1.12.4 first.)
+ifeq ($(shell $(PKG_CONFIG) --exists 'lv2 >= 1.18.0' || echo no), no)
+  $(error lv2 >= 1.12.4 not found. Please install lv2 >= 1.12.0 first.)
 endif
 ifeq ($(shell $(PKG_CONFIG) --exists 'x11 >= 1.6.0' || echo no), no)
   $(error x11 >= 1.6.0 not found. Please install x11 >= 1.6.0 first.)

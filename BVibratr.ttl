@@ -57,7 +57,7 @@ plugin:wavetable_pos
 #	lv2:microVersion 1 ;
 #	lv2:minorVersion 0 ;
         lv2:binary <BVibratr.so> ;
-        lv2:optionalFeature lv2:hardRTCapable , state:loadDefaultState , state:threadSafeRestore ;
+        lv2:optionalFeature lv2:hardRTCapable , state:loadDefaultState , state:threadSafeRestore , state:mapPath , state:freePath ;
 	lv2:requiredFeature urid:map , work:schedule ;
 	lv2:extensionData state:interface , work:interface;
 	ui:ui plugin:gui ;
