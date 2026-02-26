@@ -424,15 +424,6 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 	uint32_t type;
 	uint32_t valflags;
 
-	// Get worker
-	LV2_Worker_Schedule* schedule = nullptr;
-	lv2_features_query (features, LV2_WORKER__schedule, &schedule, true, NULL);
-    if (!schedule) 
-	{
-		fprintf(stderr, "Feature worker not provided by the host. Can't restore plugin state.\n");
-		return LV2_STATE_ERR_NO_FEATURE;
-	}
-
 	// Restore samples per frame
 	const void* spf = retrieve(handle, urids.bvibratr_wavetable_spf, &size, &type, &valflags);
 	if (spf && (type == urids.atom_Int)) 
@@ -443,7 +434,7 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 		uint8_t buf[256];
 		lv2_atom_forge_set_buffer(&forge, buf, sizeof(buf));
 		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(patch.write_patch_Set_Int(forge, urids.bvibratr, urids.bvibratr_wavetable_spf, value));
-		if (atom) schedule->schedule_work(schedule->handle, lv2_atom_total_size(atom), atom);
+		if (atom) workerSchedule->schedule_work(workerSchedule->handle, lv2_atom_total_size(atom), atom);
 	}
 
 	const void* path = retrieve(handle, urids.bvibratr_wavetable_path, &size, &type, &valflags);
@@ -455,7 +446,7 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 		uint8_t buf[1280];
 		lv2_atom_forge_set_buffer(&forge, buf, sizeof(buf));
 		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(patch.write_patch_Set_Path(forge, urids.bvibratr, urids.bvibratr_wavetable_path, strnlen(c, 1024), c));
-		if (atom) schedule->schedule_work(schedule->handle, lv2_atom_total_size(atom), atom);
+		if (atom) workerSchedule->schedule_work(workerSchedule->handle, lv2_atom_total_size(atom), atom);
 	}
 
 	return LV2_STATE_SUCCESS;
