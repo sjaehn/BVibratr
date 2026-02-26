@@ -142,14 +142,14 @@ and the tremolo amount.
 
 You can import (low frequency) wavetables into B.Vibratr from simple .wvt text 
 files. It contains one floating point value on each line for each sample. Up 
-to 32768 total samples per wavetable are allowed. For more details see 
+to 65536 total samples per wavetable are allowed. For more details see 
 [wvt.md](doc/wvt.md).
 
 You can also import wavetables created for other synthesizers in the 
 .wav or other audio formats. They often have got 256, 512, 1024, 2048 or even
 more samples per frame depending on the synthesizer created for and the
 respective specification. B.Vibratr supports these wavetables with a max size 
-limit of 32768.
+limit of 65536.
 
 The uploaded wavetables are used by the B.Vibratr algorithm to calculate
 mathematical integral wavetables which are then used by the oscillator OSC1.
@@ -160,7 +160,7 @@ its pitch. However, B.Vibratr expects pitch signals in the dependency of time.
 
 
 ## Internationalization
-B.Bibratr now uses the dictionaries of the new B.Widgets toolkit and all labels
+B.Vibratr now uses the dictionaries of the new B.Widgets toolkit and all labels
 are now automatically shown in your system language (if translation is 
 provided). The dictionary for this plugin is stored in 
 src/BVibratr_Dictionary.data. If you want to add a translation to your language, 
@@ -215,6 +215,7 @@ request or notifying me (issue report, e-mail, ...).
   * Store and restore wavetables
   * Import wavetables from audio files (incl. Serum wavetables)
   * Also support Surge XT .wt wavetables
+  * Communicate only path data instead of full wavetable data between host and ui
 
 
 ## TODOs

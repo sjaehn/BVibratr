@@ -39,9 +39,10 @@ struct BVibratrURIDs
 	LV2_URID bvibratr_wavetable_data;		// Property associated with wavetable raw data
 	LV2_URID bvibratr_wavetable_path;		// Property associated with a wavetable path to load from
 	LV2_URID bvibratr_wavetable_pos;		// Property associated with a wavetable position
-	LV2_URID bvibratr_wavetable_install;	/* Notification to install a wavetable, typically contains a pair of pointers containg again
-											   a pointer pointer to a Wavetable<> and a pointer to its integrated Wavetable<>.*/
 	LV2_URID bvibratr_wavetable_spf;		// Property associated with wavetable samples per frame.
+	LV2_URID bvibratr_wavetable_path_install;
+	LV2_URID bvibratr_wavetable_spf_install;
+	
 
 	void init (const LV2_Feature* const* features, const LV2_URID_Map* const* map);
 };
@@ -77,8 +78,9 @@ inline void BVibratrURIDs::init (const LV2_Feature* const* features, const LV2_U
 	bvibratr_wavetable_data = (*m)->map((*m)->handle, BVIBRATR_URI "#wavetable_data");
 	bvibratr_wavetable_path = (*m)->map((*m)->handle, BVIBRATR_URI "#wavetable_path");
 	bvibratr_wavetable_pos = (*m)->map((*m)->handle, BVIBRATR_URI "#wavetable_pos");
-	bvibratr_wavetable_install = (*m)->map((*m)->handle, BVIBRATR_URI "#wavetable_intstall");
 	bvibratr_wavetable_spf = (*m)->map((*m)->handle, BVIBRATR_URI "#wavetable_spf");
+	bvibratr_wavetable_path_install = (*m)->map((*m)->handle, BVIBRATR_URI "#wavetable_path_install");
+	bvibratr_wavetable_spf_install = (*m)->map((*m)->handle, BVIBRATR_URI "#wavetable_spf_install");
 }
 
 #endif /* URIDS_HPP_ */

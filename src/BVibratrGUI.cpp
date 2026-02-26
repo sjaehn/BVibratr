@@ -243,20 +243,16 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 		)
 		{
 			const LV2_Atom* val = patch.get_value_atom(atom);
-			if ((patch.get_property_type(atom) == urids.bvibratr_wavetable_data) && val && (val->type == urids.atom_Vector))
+			if ((patch.get_property_type(atom) == urids.bvibratr_wavetable_path) && val && (val->type == urids.atom_Path))
 			{
-				const LV2_Atom_Vector* vec = reinterpret_cast<const LV2_Atom_Vector*>(val);
-				const size_t n_elems = (vec->atom.size - sizeof(LV2_Atom_Vector_Body)) / sizeof(double);
-				const double* values = reinterpret_cast<const double*>(LV2_ATOM_CONTENTS_CONST(LV2_Atom_Vector, vec));
+				const char* path = reinterpret_cast<const char*>LV2_ATOM_BODY_CONST(val);
 				Wavetable<>* wt = new (std::nothrow) Wavetable<>;
 				if (!wt) {std::cerr << "bad_alloc\n"; return;}
-				*wt = wavetableWidget.getWavetable();
-				if (n_elems > 1) 
+				if (path[0]) 
 				{
-					const size_t frame_sz = std::min(wt->get_samples_per_frame(), n_elems);
-					wt->from_samples<double>(values, frame_sz, n_elems);
+					try {wt->from_file(std::string(path));}
+					catch (std::exception &exc) {std::cerr << "Failed to load " << path << " to the ui. " << exc.what() << std::endl;}
 				}
-				else wt->clear();
 				wavetableWidget.setWavetable(*wt);
 				wavetableWidget.unselect();
 				drawWaveform();
@@ -350,7 +346,7 @@ void BVibratrGUI::onConfigureRequest (BEvents::Event* event)
 void BVibratrGUI::sendWavetablePath(const std::string path)
 {
 	if (path.empty()) return;
-	if (path.length() > 924)
+	if (path.length() >= 1024)
 	{
 		std::cerr << "File path \"" << path << "\" too long." << std::endl;
 		return;
@@ -358,7 +354,7 @@ void BVibratrGUI::sendWavetablePath(const std::string path)
 
 	LV2_Atom_Forge forge;
 	lv2_atom_forge_init(&forge, map);
-	uint8_t obj_buf[1024];
+	uint8_t obj_buf[1280];
 	lv2_atom_forge_set_buffer(&forge, obj_buf, sizeof(obj_buf));
 	LV2_Atom_Forge_Ref msg = patch.write_patch_Set_Path(forge, urids.bvibratr, urids.bvibratr_wavetable_path, path.length() + 1, path.c_str());
 	LV2_Atom* atom = reinterpret_cast<LV2_Atom*>(msg);

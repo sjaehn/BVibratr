@@ -24,8 +24,10 @@
 class BVibratr
 {
 private:
+	
 	struct Atom_GC{LV2_Atom atom; const Wavetable<>* ptr;};
-	struct Atom_WT_Install{LV2_Atom atom; std::pair<Wavetable<>*, Wavetable<>*> wts;};
+	struct Atom_WT_Path_Install{LV2_Atom atom; char path[1024]; std::pair<Wavetable<>*, Wavetable<>*> wts;};
+	struct Atom_WT_Spf_Install{LV2_Atom atom; int spf; std::pair<Wavetable<>*, Wavetable<>*> wts;};
 
 public:
 	BVibratr (double samplerate, const char* bundlePath, const LV2_Feature* const* features);
@@ -49,7 +51,7 @@ private:
 	void osc1_set_waveform();
 	void play (uint32_t start, uint32_t end);
 	bool garbage_collector(const Wavetable<>* ptr);
-	Atom_WT_Install work_new_wavetable();
+	std::pair<Wavetable<>*, Wavetable<>*> new_wavetables_from_worker_wt();
 
 	double rate;
 
@@ -89,7 +91,10 @@ private:
 	LinearFader<float> amp;					// Volume change (tremolo)
 	LinearFader<float> mix;					// Mix for change in dry/wet and bypass
 	Wavetable<> worker_wt;					// (Temporary) wavetable, only used for the worker thread to create the real wavetables for the oscillators
-	bool notify;							// Request to send data via CONTROL_OUT
+	char wt_path[1024];
+	int spf;
+	bool notify_path;						// Request to send data via CONTROL_OUT
+	bool notify_spf;
 };
 
 #endif /* BVIBRATR_HPP_ */

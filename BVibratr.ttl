@@ -38,10 +38,15 @@ plugin:wavetable_spf
         lv2:minimum 1 ;
         lv2:maximum 65536 .
 
-plugin:wavetable_data
+plugin:wavetable_path
 	a lv2:Parameter ;
-	rdfs:label "Wavetable data" ;
-	rdfs:range atom:Vector .
+	rdfs:label "Wavetable source" ;
+	rdfs:range atom:Path .
+
+plugin:wavetable_pos
+	a lv2:Parameter ;
+	rdfs:label "Wavetable position" ;
+	rdfs:range atom:Double .
 
 <https://www.jahnichen.de/plugins/lv2/BVibratr>
         a lv2:Plugin, lv2:InstrumentPlugin, doap:Project;
@@ -64,7 +69,7 @@ plugin:wavetable_data
                 lv2:designation lv2:control;
                 atom:bufferType atom:Sequence ;
                 atom:supports time:Position , midi:MidiEvent , patch:Message ;
-                rsz:minimumSize 1280 ;
+                rsz:minimumSize 2048 ;
                 lv2:index 0 ;
                 lv2:symbol "control_in" ;
                 lv2:name "Control in" ;
@@ -75,7 +80,7 @@ plugin:wavetable_data
                 atom:bufferType atom:Sequence ;
                 lv2:designation lv2:control ;
                 atom:supports patch:Message ;
-                rsz:minimumSize 263168 ; # 256 kB for up to 32768 double samples + 1 kB for other data and Atom overhang 
+                rsz:minimumSize 2048 ;
                 lv2:index 1 ;
                 lv2:symbol "control_out" ;
                 lv2:name "Control_out" ;
@@ -419,15 +424,15 @@ plugin:wavetable_data
         
         patch:writable 
                 plugin:wavetable_spf ,
-                plugin:wavetable_data ;
-                
+                plugin:wavetable_path ;
+
+        patch:readable 
+                plugin:wavetable_spf ,
+                plugin:wavetable_path ,
+                plugin:wavetable_pos ;
+
         state:state
         [
                 plugin:wavetable_spf 1 ;
-                plugin:wavetable_data 
-                [
-			a atom:Vector ;
-			atom:childType atom:Double ;
-			rdf:value ()
-		]
+                plugin:wavetable_path <>
         ] .

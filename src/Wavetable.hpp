@@ -28,7 +28,7 @@
  @tparam T   Element (floating point) data type.
  @tparam N   Capacity (max number of elements). Must be at least 1.    
  */
-template<class T = double, size_t N = 0x8000>
+template<class T = double, size_t N = 0x10000>
 class Wavetable : protected std::array<T, N>
 {
 public:
