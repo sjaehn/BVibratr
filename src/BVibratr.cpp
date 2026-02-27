@@ -421,11 +421,6 @@ LV2_State_Status BVibratr::state_save (LV2_State_Store_Function store, LV2_State
 		return LV2_STATE_ERR_NO_FEATURE;
 	}
 
-	// Use worker_wt
-	// Store samples per frame as plain data
-	const int spf = worker_wt.get_samples_per_frame();
-	store(handle, urids.bvibratr_wavetable_spf, &spf, sizeof(spf), urids.atom_Int, LV2_STATE_IS_POD);
-
 	// Store wavetable path after converting to an abstract path.
 	char* abstrPath = mapPath->abstract_path(mapPath->handle, wt_path);
 	if (abstrPath)
@@ -435,6 +430,9 @@ LV2_State_Status BVibratr::state_save (LV2_State_Store_Function store, LV2_State
 		if (freePath) freePath->free_path (freePath->handle, abstrPath);
 		else free(abstrPath);
 	}
+
+	// Store samples per frame as plain data
+	store(handle, urids.bvibratr_wavetable_spf, &spf, sizeof(spf), urids.atom_Int, LV2_STATE_IS_POD);
 	
 	return LV2_STATE_SUCCESS;
 }
@@ -458,19 +456,7 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 		return LV2_STATE_ERR_NO_FEATURE;
 	}
 
-	// Restore samples per frame
-	const void* spf = retrieve(handle, urids.bvibratr_wavetable_spf, &size, &type, &valflags);
-	if (spf && (type == urids.atom_Int)) 
-	{
-		const int value = std::clamp(*reinterpret_cast<const int*>(spf), 1, 65336);
-		LV2_Atom_Forge forge;
-		lv2_atom_forge_init(&forge, map);
-		uint8_t buf[256];
-		lv2_atom_forge_set_buffer(&forge, buf, sizeof(buf));
-		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(patch.write_patch_Set_Int(forge, urids.bvibratr, urids.bvibratr_wavetable_spf, value));
-		if (atom) workerSchedule->schedule_work(workerSchedule->handle, lv2_atom_total_size(atom), atom);
-	}
-
+	// First restore path
 	const void* path = retrieve(handle, urids.bvibratr_wavetable_path, &size, &type, &valflags);
 	if (path && (type == urids.atom_Path)) 
 	{
@@ -488,6 +474,19 @@ LV2_State_Status BVibratr::state_restore (LV2_State_Retrieve_Function retrieve, 
 		}	
 	}
 
+	// Then restore samples per frame (otherwise spf from path-generated wavetable would always be used)
+	const void* spf = retrieve(handle, urids.bvibratr_wavetable_spf, &size, &type, &valflags);
+	if (spf && (type == urids.atom_Int)) 
+	{
+		const int value = std::clamp(*reinterpret_cast<const int*>(spf), 1, 65336);
+		LV2_Atom_Forge forge;
+		lv2_atom_forge_init(&forge, map);
+		uint8_t buf[256];
+		lv2_atom_forge_set_buffer(&forge, buf, sizeof(buf));
+		const LV2_Atom* atom =reinterpret_cast<const LV2_Atom*>(patch.write_patch_Set_Int(forge, urids.bvibratr, urids.bvibratr_wavetable_spf, value));
+		if (atom) workerSchedule->schedule_work(workerSchedule->handle, lv2_atom_total_size(atom), atom);
+	}
+
 	return LV2_STATE_SUCCESS;
 }
 
@@ -501,7 +500,7 @@ bool BVibratr::garbage_collector(const Wavetable<>* ptr)
 	return true;
 }
 
-std::pair<Wavetable<>*, Wavetable<>*> BVibratr::new_wavetables_from_worker_wt()
+std::pair<Wavetable<>*, Wavetable<>*> BVibratr::new_wavetables_pair(const Wavetable<>* wt)
 {
 	// 2x Copy construct the work wavetable to wt1 and wt2 in the heap memory. Needs to be deleted outside.
 	// this method (e.g., using a garbage collector)
@@ -514,8 +513,8 @@ std::pair<Wavetable<>*, Wavetable<>*> BVibratr::new_wavetables_from_worker_wt()
 		return {nullptr, nullptr};
 	}
 
-	*wt1 = worker_wt;
-	*wt2 = worker_wt;
+	*wt1 = *wt;
+	*wt2 = *wt;
 
 	// Integrate wt2
 	wt2->integrate();
@@ -563,36 +562,23 @@ LV2_Worker_Status BVibratr::work (LV2_Worker_Respond_Function respond, LV2_Worke
 				// On success
 				if (!err)
 				{
-					worker_wt = *wt;
-
 					// Copy, integrate, and pack pointers to Atom_WT_Install
 					Atom_WT_Path_Install msg;
 					msg.atom = {1024 + 2 * sizeof(Wavetable<>*), urids.bvibratr_wavetable_path_install};
 					memcpy(msg.path, path, 1024);
-					msg.wts = new_wavetables_from_worker_wt();
+					msg.wts = new_wavetables_pair(wt);
 
 					// Send whole Atom_WT_Install to LFO1 via work_response
 					const LV2_Atom* msg_ptr = reinterpret_cast<const LV2_Atom*>(&msg);
 					if (msg.wts.first) respond(handle, lv2_atom_total_size(msg_ptr), msg_ptr);
-
 				}
 
 				delete wt;
 			}
 		}
 		
-		// SPF: Only set samples per frame and send whole worker_wt to LFO1 via work_response
-		else if (property == urids.bvibratr_wavetable_spf)
-		{
-			const int spf = patch.get_value_int(atom);
-			worker_wt.set_samples_per_frame(spf);
-			const Atom_WT_Spf_Install msg = {1024 + 2 * sizeof(Wavetable<>*), 
-											 urids.bvibratr_wavetable_spf_install, 
-											 spf, 
-											 new_wavetables_from_worker_wt()};
-			const LV2_Atom* msg_ptr = reinterpret_cast<const LV2_Atom*>(&msg);
-			if (msg.wts.first && msg.wts.second) respond(handle, lv2_atom_total_size(msg_ptr), msg_ptr);
-		}
+		// SPF: Forward to work response work_response
+		else if (property == urids.bvibratr_wavetable_spf) respond(handle, lv2_atom_total_size(atom), atom);
 	}
 	
 	return LV2_WORKER_SUCCESS;
@@ -604,7 +590,7 @@ LV2_Worker_Status BVibratr::work_response (uint32_t size, const void* data)
 	const LV2_Atom* atom = reinterpret_cast<const LV2_Atom*>(data);
 	if (!atom) return LV2_WORKER_ERR_UNKNOWN;
 
-	// Wavetable install and schedule notify via CONTROL_OUT
+	// Wavetable: Install and schedule notify via CONTROL_OUT
 	if (atom->type == urids.bvibratr_wavetable_path_install)
 	{
 		const Atom_WT_Path_Install* wti_atom = reinterpret_cast<const Atom_WT_Path_Install*>(atom);
@@ -616,22 +602,26 @@ LV2_Worker_Status BVibratr::work_response (uint32_t size, const void* data)
 			return LV2_WORKER_SUCCESS;
 		}
 		memcpy(wt_path, wti_atom->path, 1024);
-		const Wavetable<>* wt1 = wti_atom->wts.first;
-		const Wavetable<>* wt2 = wti_atom->wts.second;
+		Wavetable<>* wt1 = wti_atom->wts.first;
+		Wavetable<>* wt2 = wti_atom->wts.second;
+		if (wt1) spf = wt1->get_samples_per_frame();
 		oscx3.osc1.set_wavetable_data(wt1, wt2);
 		notify_path = true;
 	}
 
-	else if (atom->type == urids.bvibratr_wavetable_spf_install)
+	// Spf: Set and schedule notify via CONTROL_OUT
+	else if (patch.is_Patch_Msg(atom) && (patch.get_subject_type(atom) == urids.bvibratr))
 	{
-		const Atom_WT_Spf_Install* wti_atom = reinterpret_cast<const Atom_WT_Spf_Install*>(atom);
-		if (spf == wti_atom->spf) return LV2_WORKER_SUCCESS;
-		spf = wti_atom->spf;
-		const Wavetable<>* wt1 = wti_atom->wts.first;
-		const Wavetable<>* wt2 = wti_atom->wts.second;
-		oscx3.osc1.set_wavetable_data(wt1, wt2);
-		notify_spf = true;
+		LV2_URID property = patch.get_property_type(atom);
+		if (property == urids.bvibratr_wavetable_spf)
+		{
+			const int spf = patch.get_value_int(atom);
+			this->spf = spf;
+			if (oscx3.osc1.get_wavetable()) oscx3.osc1.set_wavetable_spf(spf);
+			notify_spf = true;
+		}
 	}
+
 	return LV2_WORKER_SUCCESS;
 }
 

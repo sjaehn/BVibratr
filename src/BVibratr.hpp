@@ -51,7 +51,7 @@ private:
 	void osc1_set_waveform();
 	void play (uint32_t start, uint32_t end);
 	bool garbage_collector(const Wavetable<>* ptr);
-	std::pair<Wavetable<>*, Wavetable<>*> new_wavetables_from_worker_wt();
+	std::pair<Wavetable<>*, Wavetable<>*> new_wavetables_pair(const Wavetable<>* wt);
 
 	double rate;
 
@@ -90,7 +90,6 @@ private:
 	LinearFader<double> shift;				// Temporal shift (vibrato)
 	LinearFader<float> amp;					// Volume change (tremolo)
 	LinearFader<float> mix;					// Mix for change in dry/wet and bypass
-	Wavetable<> worker_wt;					// (Temporary) wavetable, only used for the worker thread to create the real wavetables for the oscillators
 	char wt_path[1024];
 	int spf;
 	bool notify_path;						// Request to send data via CONTROL_OUT

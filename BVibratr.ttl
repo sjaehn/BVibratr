@@ -433,6 +433,6 @@ plugin:wavetable_pos
 
         state:state
         [
-                plugin:wavetable_spf 1 ;
-                plugin:wavetable_path <>
+                plugin:wavetable_path <> ;
+                plugin:wavetable_spf 1
         ] .

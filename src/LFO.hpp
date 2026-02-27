@@ -72,7 +72,9 @@ public:
     @param wavetable    Pointer to wavetable.
     @param integral_wavetable   Pointer to the integral wavetable.
      */
-    void set_wavetable_data(const Wavetable<T>* wavetable, const Wavetable<T>* integral_wavetable_);
+    void set_wavetable_data(Wavetable<T>* wavetable, Wavetable<T>* integral_wavetable_);
+
+    void set_wavetable_spf(const size_t spf);
 
     /**
     Gets (a pointer to) the wavetable. If there isn't an installed wavetable,
@@ -158,8 +160,8 @@ public:
 
 protected:
     Waveform waveform_;
-    const Wavetable<T> *wavetable_;
-    const Wavetable<T> *integral_wavetable_;
+    Wavetable<T> *wavetable_;
+    Wavetable<T> *integral_wavetable_;
     T freq_;
     T phase_;
     T shift_;
@@ -216,12 +218,18 @@ template <class T> inline void LFO<T>::set_waveform (const Waveform waveform) {w
     
 template <class T> inline typename LFO<T>::Waveform LFO<T>::get_waveform () const {return waveform_;}
 
-template <class T> inline void LFO<T>::set_wavetable_data(const Wavetable<T>* wavetable, const Wavetable<T>* integral_wavetable)
+template <class T> inline void LFO<T>::set_wavetable_data(Wavetable<T>* wavetable, Wavetable<T>* integral_wavetable)
 {
     if (wavetable_) schedule_delete_wavetable(wavetable_);
     wavetable_ = wavetable;
     if (integral_wavetable_) schedule_delete_wavetable(integral_wavetable_);
     integral_wavetable_ = integral_wavetable;
+}
+
+template <class T> inline void LFO<T>::set_wavetable_spf(const size_t spf)
+{
+    if (wavetable_) wavetable_->set_samples_per_frame(spf);
+    if (integral_wavetable_) integral_wavetable_->set_samples_per_frame(spf);
 }
 
 template <class T> inline const Wavetable<>* LFO<T>::get_wavetable() const {return wavetable_;}
