@@ -216,11 +216,11 @@ request or notifying me (issue report, e-mail, ...).
   * Import wavetables from audio files (incl. Serum wavetables)
   * Also support Surge XT .wt wavetables
   * Communicate only path data instead of full wavetable data between host and ui
+* Simple wavetable manipulation (wave size only)
 
 
 ## TODOs
 
-* Simple tools for wavetable manipulation
 * Internationalization
 * Presets
 * Documentation
