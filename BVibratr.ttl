@@ -405,7 +405,7 @@ plugin:wavetable_pos
                 lv2:symbol "tremolo" ;
                 lv2:name "Tremolo" ;
 		lv2:default 0.0 ;
-                lv2:minimum 0.0 ;
+                lv2:minimum -0.5 ;
                 lv2:maximum 0.5 ;
                 rdfs:comment "Amount of additional tremolo. The tremolo is synchronized with the vibrato.";
         ] , 

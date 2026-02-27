@@ -100,7 +100,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	osc3Screen1 (620, 160, 160, 120, URID("/screen")),
 	osc3Screen2 (705, 115, 90, 50, URID("/screen")),
 	tremoloLabel (840, 250, 80, 20, BDICT("Amount"), URID("/ctlabel")),
-	tremoloDial (840, 170, 80, 80, 0.0, 0.0, 0.5, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Tremolo")),
+	tremoloDial (840, 170, 80, 80, 0.0, -0.5, 0.5, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Tremolo")),
 	adsrDisplay (180, 320, 200, 120),
 	waveformDisplay (420, 310, 520, 130)
 	

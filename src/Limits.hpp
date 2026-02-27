@@ -45,7 +45,7 @@ constexpr std::array<const Limit, BVIBRATR_NR_CONTROLLERS> controller_limits =
     {0.1, 20, 0.0},
     {1, 8, 1},
     {1, 4, 1},
-    {0.0, 0.5, 0.0}
+    {-0.5, 0.5, 0.0}
 }};
 
 #endif /* LIMIT_HPP_ */

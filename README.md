@@ -131,8 +131,9 @@ frequency, you can also set the amplitude (amount) of the respective
 oscillator OSC2 and OSC3. 
 
 In addition to the vibrato effect, you can apply a tremolo volume effect. The 
-tremolo is parallelized to the vibrato change in pitch. Thus, the higher the 
-pitch, the higher the volume.
+tremolo is parallelized to the vibrato change in pitch (or antiparallel in the
+case of negative tremolo values). For positive tremolo values: The higher the 
+pitch, the higher the volume. And for negative tremolo values *vice versa*.
 
 Finally, B.Vibratr uses a standard ADSR envelope to control the vibrato depth
 and the tremolo amount.
