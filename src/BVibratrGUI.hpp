@@ -144,11 +144,11 @@ private:
 	BStyles::ColorMap btColors = BStyles::ColorMap {{{0.0, 0.0, 0.0, 1.0}, {0.4, 0.2, 0.3, 1.0}, {0.0, 0.00, 0.00, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap noColors = BStyles::ColorMap {{{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}}};
 
-	BStyles::Border border = {{fgColors[BStyles::Status::normal], 1.0}, 0.0, 2.0, 0.0};
-	BStyles::Border menuBorder = {{noColors[BStyles::Status::normal], 1.0}, 0.0, 0.0, 0.0};
-	BStyles::Border menuBorder2 = {{bgColors[BStyles::Status::normal], 1.0}, 0.0, 0.0, 0.0};
+	//BStyles::Border border = {{fgColors[BStyles::Status::normal], 1.0}, 0.0, 2.0, 0.0};
+	//BStyles::Border menuBorder = {{noColors[BStyles::Status::normal], 1.0}, 0.0, 0.0, 0.0};
+	//BStyles::Border menuBorder2 = {{bgColors[BStyles::Status::normal], 1.0}, 0.0, 0.0, 0.0};
 	BStyles::Border btBorder = BStyles::Border (BStyles::Line (bgColors[BStyles::Status::normal].illuminate (BStyles::Color::darkened), 0.0), 0.0, 0.0, 3.0);
-	BStyles::Border labelBorder = {BStyles::noLine, 4.0, 0.0, 0.0};
+	//BStyles::Border labelBorder = {BStyles::noLine, 4.0, 0.0, 0.0};
 	BStyles::Fill widgetBg = BStyles::noFill;
 	BStyles::Fill screenBg = BStyles::Fill (BStyles::Color ({0.5, 0.0, 0.2, 0.8}));
 	BStyles::Fill darkBg = BStyles::Fill (BStyles::Color ({0.2, 0.05, 0.1, 1}));
@@ -297,14 +297,14 @@ private:
 		},
 
 		// rlabel
-		{
+		/*{
 			URID ("/rlabel"), 
 			BStyles::Style
 			({	
 				{BURID(BSTYLES_STYLEPROPERTY_FONT_URI), BUtilities::makeAny<BStyles::Font>(rFont)},
 				{BURID(BSTYLES_STYLEPROPERTY_TXCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(txColors)}
 			})
-		},
+		},*/
 
 		// editlabel
 		{

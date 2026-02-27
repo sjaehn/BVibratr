@@ -35,9 +35,6 @@
 #define BVIBRATR_GUI_WIDTH 960
 #define BVIBRATR_GUI_HEIGHT 460
 
-#define BVIBRATR_DEFAULT_WAVETABLE_FILE "inc/sine.wvt"
-
-
 BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *features, PuglNativeView parentWindow) :
 	Window (BVIBRATR_GUI_WIDTH, BVIBRATR_GUI_HEIGHT, parentWindow, URID(), "B.Vibratr", true, PUGL_MODULE, 0),
 	controller (NULL), 
@@ -255,7 +252,7 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 			{
 				const char* path = reinterpret_cast<const char*>LV2_ATOM_BODY_CONST(val);
 				Wavetable<>* wt = new (std::nothrow) Wavetable<>;
-				if (!wt) {std::cerr << "bad_alloc\n"; return;}
+				if (!wt) return;
 				if (path[0]) 
 				{
 					try {wt->from_file(std::string(path));}
@@ -291,7 +288,7 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 			{
 				const LV2_Atom_Int* ival = reinterpret_cast<const LV2_Atom_Int*>(val);
 				Wavetable<>* wt = new (std::nothrow) Wavetable<>;
-				if (!wt) {std::cerr << "bad_alloc\n"; return;}
+				if (!wt) return;
 				*wt = wavetableWidget.getWavetable();
 				wt->set_samples_per_frame(ival->body);
 				wavetableWidget.setWavetable(*wt);
@@ -778,7 +775,8 @@ void BVibratrGUI::loadWavetableClickedCallback (BEvents::Event* event)
 
 	if (!ui->wavetableChooser)
 	{
-		ui->wavetableChooser = new WavetableChooser(URID("/menu"), "Wavetables");
+		ui->wavetableChooser = new (std::nothrow) WavetableChooser(URID("/menu"), "Wavetables");
+		if (!ui->wavetableChooser) return;
 		ui->wavetableChooser->confirmIfExists = false;
 		ui->wavetableChooser->setCloseable(false);
 		ui->wavetableChooser->setCallbackFunction(BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::wavetableFileSelectedCallback);
