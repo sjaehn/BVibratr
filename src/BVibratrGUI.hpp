@@ -11,6 +11,7 @@
 #include "BWidgets/BStyles/Status.hpp"
 #include "BWidgets/BStyles/Types/Border.hpp"
 #include "BWidgets/BStyles/Types/Color.hpp"
+#include "BWidgets/BWidgets/EditLabel.hpp"
 #include "BWidgets/BWidgets/SymbolButton.hpp"
 #include "BWidgets/BWidgets/Widget.hpp"
 #include "BWidgets/BWidgets/Window.hpp"
@@ -21,6 +22,7 @@
 #include "BWidgets/BWidgets/TextButton.hpp"
 
 #include "BDial.hpp"
+#include "BWidgets/Widget.hpp"
 #include "Patch.hpp"
 #include "ValueHSlider.hpp"
 #include "Ports.hpp"
@@ -52,10 +54,12 @@ public:
 
 private:
 	void sendWavetablePath(const std::string path);
+	void sendWavetableSpf(const int spf);
 	void drawAdsr ();
 	void drawWaveform ();
 	static void valueChangedCallback (BEvents::Event* event);
 	static void midiChannelsChangedCallback (BEvents::Event* event);
+	static void spfChangedCallback (BEvents::Event* event);
 	static void loadWavetableClickedCallback (BEvents::Event* event);
 	static void wavetableFileSelectedCallback (BEvents::Event* event);
 	//static void helpButtonClickedCallback (BEvents::Event* event);
@@ -98,7 +102,9 @@ private:
 	BWidgets::Label osc1WaveformLabel;
 	BWidgets::ComboBox osc1WaveformCombobox;
 	BWidgets::SymbolButton loadWavetableButton;
-	BWidgets::SymbolButton editWavetableButton;
+	BWidgets::Widget wavetableFrame;
+	BWidgets::Label spfLabel;
+	BWidgets::EditLabel spfEdit;
 	WavetableChooser* wavetableChooser;
 	BWidgets::Label noWavetableLabel;
 	WavetableWidget wavetableWidget;
@@ -145,6 +151,7 @@ private:
 	BStyles::Border labelBorder = {BStyles::noLine, 4.0, 0.0, 0.0};
 	BStyles::Fill widgetBg = BStyles::noFill;
 	BStyles::Fill screenBg = BStyles::Fill (BStyles::Color ({0.5, 0.0, 0.2, 0.8}));
+	BStyles::Fill darkBg = BStyles::Fill (BStyles::Color ({0.2, 0.05, 0.1, 1}));
 	BStyles::Font defaultFont =	BStyles::Font 
 	(
 		"Sans", 
@@ -296,6 +303,17 @@ private:
 			({	
 				{BURID(BSTYLES_STYLEPROPERTY_FONT_URI), BUtilities::makeAny<BStyles::Font>(rFont)},
 				{BURID(BSTYLES_STYLEPROPERTY_TXCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(txColors)}
+			})
+		},
+
+		// editlabel
+		{
+			URID ("/editlabel"), 
+			BStyles::Style
+			({	
+				{BURID(BSTYLES_STYLEPROPERTY_FONT_URI), BUtilities::makeAny<BStyles::Font>(rFont)},
+				{BURID(BSTYLES_STYLEPROPERTY_TXCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(txColors)},
+				{BURID(BSTYLES_STYLEPROPERTY_BACKGROUND_URI), BUtilities::makeAny<BStyles::Fill>(darkBg)}
 			})
 		},
 

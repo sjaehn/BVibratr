@@ -16,6 +16,7 @@
 #include "BWidgets/BEvents/ValueChangeTypedEvent.hpp"
 #include "BWidgets/BUtilities/Dictionary.hpp"
 #include "BWidgets/BWidgets/ComboBox.hpp"
+#include "BWidgets/BWidgets/EditLabel.hpp"
 #include "BWidgets/BWidgets/Label.hpp"
 #include "BWidgets/BWidgets/Supports/ValueTransferable.hpp"
 #include "BWidgets/BWidgets/Supports/ValueableTyped.hpp"
@@ -71,11 +72,13 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	osc1ModeCombobox(210, 140, 90, 20, 0, 20, 90, 40, {BDICT("LFO"), BDICT("Wavetable")}, 1, URID("/menu")),
 	osc1WaveformLabel (310, 120, 80, 20, BDICT("Waveform"), URID("/label")),
 	osc1WaveformCombobox(310, 140, 80, 20, 0, 20, 80, 80, {BDICT("Sine"), BDICT("Triangle"), BDICT("Square"), BDICT("Saw")}, 1, URID("/menu")),
-	loadWavetableButton(220, 250, 30, 20, BWidgets::Symbol::SymbolType::load, false, false, URID("/menu/button")),
-	editWavetableButton(260, 250, 30, 20, BWidgets::Symbol::SymbolType::setup, false, false, URID("/menu/button")),
+	loadWavetableButton(310, 140, 30, 20, BWidgets::Symbol::SymbolType::load, false, false, URID("/menu/button")),
+	wavetableFrame(210, 165, 100, 105),
+	spfLabel (0, 85, 65, 20, BDICT("Wave size") + ":", URID("/label")),
+	spfEdit (65, 85, 35, 20, std::to_string(1), URID("/editlabel")),
 	wavetableChooser(nullptr),
 	noWavetableLabel (0, 30, 90, 20, BDICT("No Data"), URID("/bglabel")),
-	wavetableWidget(210, 165, 90, 80, Wavetable<>(), URID ("/dial")),
+	wavetableWidget(0, 0, 90, 80, Wavetable<>(), URID ("/dial")),
 	osc2AmpLabel (420, 250, 80, 20, BDICT("Amplitude"), URID("/ctlabel")),
 	osc2AmpDial (420, 170, 80, 80, 0.0, 0.0, 1.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Amplitude")),
 	osc2FreqLabel (500, 250, 80, 20, BDICT("Frequency"), URID("/ctlabel")),
@@ -163,8 +166,10 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	midiNoteScreen.hide();
 	depthScreen.hide();
 	loadWavetableButton.hide();
-	editWavetableButton.hide();
+	spfLabel.hide();
+	spfEdit.hide();
 	wavetableWidget.hide();
+	wavetableFrame.hide();
 	osc2Screen1.show();
 	osc2Screen2.show();
 	osc3Screen1.show();
@@ -180,12 +185,16 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	// Set callbacks
 	for (BWidgets::Widget* c : controllerWidgets) c->setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::valueChangedCallback);
 	for (BWidgets::TextButton* m : midiChannelBoxes) m->setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::midiChannelsChangedCallback);
+	spfEdit.setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::spfChangedCallback);
 	loadWavetableButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::loadWavetableClickedCallback);
 	//helpButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::helpButtonClickedCallback);
 	//ytButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::ytButtonClickedCallback);
 
 	// Pack widgets
-	wavetableWidget.add(&noWavetableLabel);
+	wavetableFrame.add(&wavetableWidget);
+	wavetableFrame.add(&spfLabel);
+	wavetableFrame.add(&spfEdit);
+	wavetableFrame.add(&noWavetableLabel);
 	for (BWidgets::Widget* c : controllerWidgets) mContainer.add(c);
 	mContainer.add(&bypassLabel);
 	mContainer.add(&drywetLabel);
@@ -200,8 +209,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	mContainer.add(&osc1ModeLabel);
 	mContainer.add(&osc1WaveformLabel);
 	mContainer.add(&loadWavetableButton);
-	mContainer.add(&editWavetableButton);
-	mContainer.add(&wavetableWidget);
+	mContainer.add(&wavetableFrame);
 	mContainer.add(&osc2AmpLabel);
 	mContainer.add(&osc2FreqLabel);
 	mContainer.add(&osc2ModeLabel);
@@ -256,8 +264,26 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 				wavetableWidget.setWavetable(*wt);
 				wavetableWidget.unselect();
 				drawWaveform();
-				if (wt->get_total_samples() > 1) noWavetableLabel.hide();
-				else noWavetableLabel.show();
+				if (wt->get_total_samples() > 1) 
+				{
+					noWavetableLabel.hide();
+					spfLabel.show();
+					spfEdit.setValueable(false);
+					spfEdit.setText(std::to_string(wt->get_samples_per_frame()));
+					spfEdit.setValueable(true);
+					spfEdit.show();
+					wavetableWidget.show();
+				}
+				else 
+				{
+					noWavetableLabel.show();
+					spfLabel.hide();
+					spfEdit.setValueable(false);
+					spfEdit.setText(std::to_string(wt->get_samples_per_frame()));
+					spfEdit.setValueable(true);
+					spfEdit.hide();
+					wavetableWidget.hide();
+				}
 				delete wt;
 			}
 
@@ -271,8 +297,24 @@ void BVibratrGUI::portEvent(uint32_t port_index, uint32_t buffer_size, uint32_t 
 				wavetableWidget.setWavetable(*wt);
 				wavetableWidget.unselect();
 				drawWaveform();
-				if (wt->get_total_samples() > 1) noWavetableLabel.hide();
-				else noWavetableLabel.show();
+				if (wt->get_total_samples() > 1) 
+				{
+					noWavetableLabel.hide();
+					spfLabel.show();
+					spfEdit.setValueable(false);
+					spfEdit.setText(std::to_string(wt->get_samples_per_frame()));
+					spfEdit.setValueable(true);
+					spfEdit.show();
+				}
+				else 
+				{
+					noWavetableLabel.show();
+					spfLabel.hide();
+					spfEdit.setValueable(false);
+					spfEdit.setText(std::to_string(wt->get_samples_per_frame()));
+					spfEdit.setValueable(true);
+					spfEdit.hide();
+				}
 				delete wt;
 			}
 
@@ -357,6 +399,17 @@ void BVibratrGUI::sendWavetablePath(const std::string path)
 	uint8_t obj_buf[1280];
 	lv2_atom_forge_set_buffer(&forge, obj_buf, sizeof(obj_buf));
 	LV2_Atom_Forge_Ref msg = patch.write_patch_Set_Path(forge, urids.bvibratr, urids.bvibratr_wavetable_path, path.length() + 1, path.c_str());
+	LV2_Atom* atom = reinterpret_cast<LV2_Atom*>(msg);
+	if (msg) write_function(controller, BVIBRATR_CONTROL_IN, lv2_atom_total_size(atom), urids.atom_eventTransfer, atom);
+}
+
+void BVibratrGUI::sendWavetableSpf(const int spf)
+{
+	LV2_Atom_Forge forge;
+	lv2_atom_forge_init(&forge, map);
+	uint8_t obj_buf[256];
+	lv2_atom_forge_set_buffer(&forge, obj_buf, sizeof(obj_buf));
+	LV2_Atom_Forge_Ref msg = patch.write_patch_Set_Int(forge, urids.bvibratr, urids.bvibratr_wavetable_spf, spf);
 	LV2_Atom* atom = reinterpret_cast<LV2_Atom*>(msg);
 	if (msg) write_function(controller, BVIBRATR_CONTROL_IN, lv2_atom_total_size(atom), urids.atom_eventTransfer, atom);
 }
@@ -601,8 +654,7 @@ void BVibratrGUI::valueChangedCallback (BEvents::Event* event)
 				ui->osc1FreqDial.resize(100, 100);
 				ui->osc1FreqLabel.moveTo(250, 250);
 				ui->loadWavetableButton.hide();
-				ui->editWavetableButton.hide();
-				ui->wavetableWidget.hide();
+				ui->wavetableFrame.hide();
 			}
 			else 
 			{
@@ -612,8 +664,7 @@ void BVibratrGUI::valueChangedCallback (BEvents::Event* event)
 				ui->osc1FreqDial.resize(80, 80);
 				ui->osc1FreqLabel.moveTo(300, 250);
 				ui->loadWavetableButton.show();
-				ui->editWavetableButton.show();
-				ui->wavetableWidget.show();
+				ui->wavetableFrame.show();
 			}
 		}
 
@@ -684,9 +735,37 @@ void BVibratrGUI::midiChannelsChangedCallback (BEvents::Event* event)
 	}
 }
 
+void BVibratrGUI::spfChangedCallback (BEvents::Event* event)
+{
+	if (!event) return;
+	if (!dynamic_cast<BEvents::ValueChangeTypedEvent<std::string>*>(event)) return;
+
+	BWidgets::Widget* widget = event->getWidget ();
+	if (!widget) return;
+
+	BWidgets::EditLabel* editLabel = dynamic_cast<BWidgets::EditLabel*>(widget);
+	if (!editLabel) return;
+
+	BVibratrGUI* ui = dynamic_cast<BVibratrGUI*> (widget->getMainWindow());
+	if (!ui) return;
+
+	int oldSpf = ui->wavetableWidget.getWavetable().get_samples_per_frame();
+	int spf = oldSpf;
+	try {spf = std::stoi(editLabel->getText());}
+	catch (std::exception &exc) 
+	{
+		std::cerr << "BVibratr.lv2#GUI: Invalid parameter for wave size entered (" << exc.what() << ")" << std::endl;
+		editLabel->setValueable(false);
+		editLabel->setText(std::to_string(oldSpf));
+		editLabel->setValueable(true);
+	}
+	if (spf != oldSpf) ui->sendWavetableSpf(spf);
+}
+
 void BVibratrGUI::loadWavetableClickedCallback (BEvents::Event* event)
 {
 	if (!event) return;
+	event->getEventType();
 
 	BWidgets::Widget* widget = event->getWidget ();
 	if (!widget) return;
