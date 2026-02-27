@@ -146,11 +146,11 @@ files. It contains one floating point value on each line for each sample. Up
 to 65536 total samples per wavetable are allowed. For more details see 
 [wvt.md](doc/wvt.md).
 
-You can also import wavetables created for other synthesizers in the 
-.wav or other audio formats. They often have got 256, 512, 1024, 2048 or even
-more samples per frame depending on the synthesizer created for and the
-respective specification. B.Vibratr supports these wavetables with a max size 
-limit of 65536.
+You can also import wavetables created for other synthesizers in the .wt 
+(Surge XT), .wav (Serum) or other audio formats. They often have got 256, 512,
+1024, 2048 or even more samples per frame depending on the synthesizer created
+for and the respective specification. B.Vibratr supports these wavetables with
+a max size limit of 65536.
 
 The uploaded wavetables are used by the B.Vibratr algorithm to calculate
 mathematical integral wavetables which are then used by the oscillator OSC1.

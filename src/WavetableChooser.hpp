@@ -20,7 +20,7 @@
 #endif
 
 #ifndef BWIDGETS_DEFAULT_WAVETABLECHOOSER_WAVETABLEFILES_REGEX
-#define BWIDGETS_DEFAULT_WAVETABLECHOOSER_WAVETABLEFILES_REGEX std::regex (".*\\.((wav)|(wvt))$", std::regex_constants::icase)
+#define BWIDGETS_DEFAULT_WAVETABLECHOOSER_WAVETABLEFILES_REGEX std::regex (".*\\.((wav)|(wt)|(wvt))$", std::regex_constants::icase)
 #endif
 
 /**
