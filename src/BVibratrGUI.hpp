@@ -95,6 +95,8 @@ private:
 	ValueHSlider decaySlider;
 	ValueHSlider sustainSlider;
 	ValueHSlider releaseSlider;
+	BWidgets::Label resyncLabel;
+	BWidgets::Knob resyncButton;
 	BWidgets::Label osc1FreqLabel;
 	BDial osc1FreqDial;
 	BWidgets::Label osc1ModeLabel;
@@ -252,7 +254,7 @@ private:
 			BStyles::Style 
 			({
 				{BURID(BSTYLES_STYLEPROPERTY_BGCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(bgColors)},
-				{BURID(BSTYLES_STYLEPROPERTY_FGCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(BStyles::reds)}
+				{BURID(BSTYLES_STYLEPROPERTY_FGCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(wtColors)}
 			})
 		},
 

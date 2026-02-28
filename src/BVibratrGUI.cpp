@@ -33,7 +33,7 @@
 #include "WavetableWidget.hpp"
 
 #define BVIBRATR_GUI_WIDTH 960
-#define BVIBRATR_GUI_HEIGHT 460
+#define BVIBRATR_GUI_HEIGHT 480
 
 BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *features, PuglNativeView parentWindow) :
 	Window (BVIBRATR_GUI_WIDTH, BVIBRATR_GUI_HEIGHT, parentWindow, URID(), "B.Vibratr", true, PUGL_MODULE, 0),
@@ -63,6 +63,8 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	decaySlider (40, 358, 120, 15, 0.1, 0.1, 4.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Decay")),
 	sustainSlider (40, 388, 120, 15, 0.0, 0.0, 1.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Sustain")),
 	releaseSlider (40, 418, 120, 15, 0.1, 0.1, 4.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Release")),
+	resyncLabel (50, 445, 120, 20, BDICT ("Resync oscillators"), URID ("/label")),
+	resyncButton (20, 447, 16, 16, 2, true, false, URID ("/redbutton"), BDICT ("Resync")),
 	osc1FreqLabel (250, 250, 100, 20, BDICT("Frequency"), URID("/ctlabel")),
 	osc1FreqDial (250, 160, 100, 100, 1.0, 1.0, 20.0, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Frequency")),
 	osc1ModeLabel (210, 120, 90, 20, BDICT("Mode"), URID("/label")),
@@ -98,8 +100,8 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	osc3Screen2 (705, 115, 90, 50, URID("/screen")),
 	tremoloLabel (840, 250, 80, 20, BDICT("Amount"), URID("/ctlabel")),
 	tremoloDial (840, 170, 80, 80, 0.0, -0.5, 0.5, 0.0, BNOTRANSFERD, BNOTRANSFERD, BDOUBLE_TO_STRING, BSTRING_TO_DOUBLE, URID ("/dial"), BDICT ("Tremolo")),
-	adsrDisplay (180, 320, 200, 120),
-	waveformDisplay (420, 310, 520, 130)
+	adsrDisplay (180, 320, 200, 140),
+	waveformDisplay (420, 310, 520, 150)
 	
 {
 	// Link controllers
@@ -124,6 +126,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	controllerWidgets[BVIBRATR_OSC3_FREQ] = &osc3FreqDial;
 	controllerWidgets[BVIBRATR_OSC3_MODE] = &osc3ModeCombobox;
 	controllerWidgets[BVIBRATR_OSC3_WAVEFORM] = &osc3WaveformCombobox;
+	controllerWidgets[BVIBRATR_RESYNC_OSC] = &resyncButton;
 	controllerWidgets[BVIBRATR_TREMOLO] = &tremoloDial;
 
 	// Configure widgets
@@ -219,6 +222,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	mContainer.add(&osc3WaveformLabel);
 	mContainer.add(&osc3Screen1);
 	mContainer.add(&osc3Screen2);
+	mContainer.add(&resyncLabel);
 	mContainer.add(&tremoloLabel);
 	mContainer.add (&adsrDisplay);
 	mContainer.add (&waveformDisplay);

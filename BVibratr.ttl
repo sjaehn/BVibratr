@@ -396,12 +396,24 @@ plugin:wavetable_pos
 		lv2:default 1 ;
                 lv2:minimum 1 ;
                 lv2:maximum 4 ;
-                rdfs:comment "LFO waveform for Osc 3."
+                rdfs:comment "LFO waveform for Osc 3." ;
         ] ,
 
         [
                 a lv2:InputPort , lv2:ControlPort ;
                 lv2:index 27 ;
+                lv2:symbol "resync" ;
+                lv2:name "Resync" ;
+		lv2:portProperty lv2:integer, lv2:toggled ;
+                lv2:default 1 ;
+                lv2:minimum 0 ;
+                lv2:maximum 1 ;
+                rdfs:comment "Resynchronization of oscillators on attack.";
+        ] , 
+        
+        [
+                a lv2:InputPort , lv2:ControlPort ;
+                lv2:index 28 ;
                 lv2:symbol "tremolo" ;
                 lv2:name "Tremolo" ;
 		lv2:default 0.0 ;
@@ -412,7 +424,7 @@ plugin:wavetable_pos
         
         [
 		a lv2:OutputPort , lv2:ControlPort ;
-		lv2:index 28 ;
+		lv2:index 29 ;
 		lv2:symbol "latency" ;
 		lv2:name "latency" ;
 		lv2:minimum 0 ;

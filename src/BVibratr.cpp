@@ -170,6 +170,10 @@ void BVibratr::run (uint32_t n_samples)
 					oscx3.osc3.set_waveform(static_cast<LFO<double>::Waveform>(value));
 					break;
 
+				case BVIBRATR_RESYNC_OSC:
+					oscx3.osc1.sync = oscx3.osc2.sync = oscx3.osc3.sync = static_cast<bool>(value);
+					break;
+
 				default:
 					break;
 			}

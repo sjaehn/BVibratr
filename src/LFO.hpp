@@ -158,6 +158,11 @@ public:
      */
     std::function<bool (const Wavetable<>* ptr)> garbage_collector;
 
+    /**
+    Phase restart upon start/stop.
+     */
+    bool sync;
+
 protected:
     Waveform waveform_;
     Wavetable<T> *wavetable_;
@@ -188,6 +193,7 @@ template <class T> inline LFO<T>::LFO () : LFO (SINE, 1.0) {}
 
 template <class T> inline LFO<T>::LFO (const Waveform waveform, const T freq) : 
     garbage_collector([](const Wavetable<>* ptr){return true;}),
+    sync(true),
     waveform_(waveform), 
     wavetable_(nullptr),
     integral_wavetable_(nullptr),
@@ -240,14 +246,14 @@ template <class T> inline T LFO<T>::get_phase_shift () const {return shift_;}
 
 template <class T> inline void LFO<T>::start () 
 {
-    phase_ = 0.0;
+    if (sync) phase_ = 0.0;
     active_ = true;
     on_event_(START);
 }
 
 template <class T> inline void LFO<T>::stop () 
 {
-    phase_ = 0.0;
+    if (sync) phase_ = 0.0;
     active_ = false;
     on_event_(STOP);
 }
