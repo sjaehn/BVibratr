@@ -775,7 +775,8 @@ void BVibratrGUI::loadWavetableClickedCallback (BEvents::Event* event)
 
 	if (!ui->wavetableChooser)
 	{
-		ui->wavetableChooser = new (std::nothrow) WavetableChooser(URID("/menu"), "Wavetables");
+		ui->wavetableChooser = new (std::nothrow) WavetableChooser(URID("/filechooser"), "Wavetables");
+		ui->wavetableChooser->wavetable.setFgColors(ui->wtColors);
 		if (!ui->wavetableChooser) return;
 		ui->wavetableChooser->confirmIfExists = false;
 		ui->wavetableChooser->setCloseable(false);

@@ -140,8 +140,9 @@ private:
 	BStyles::ColorMap fgColors = BStyles::ColorMap {{{1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {0.5, 0.5, 0.5, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap txColors = BStyles::ColorMap {{{0.8, 0.8, 0.8, 1.0}, {1.0, 1.0, 1.0, 1.0}, {0.5, 0.5, 0.5, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap trColors = BStyles::ColorMap {{{0.8, 0.8, 0.8, 0.5}, {1.0, 1.0, 1.0, 0.5}, {0.5, 0.5, 0.5, 0.5}, {0.0, 0.0, 0.0, 0.0}}};
+	BStyles::ColorMap wtColors = BStyles::ColorMap {{{1.0, 0.0, 0.45, 1.0}, {1.0, 1.0, 1.0, 1}, {0.5, 0, 0.2, 1}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap bgColors = BStyles::ColorMap {{{0.2, 0.05, 0.1, 1.0}, {0.4, 0.2, 0.3, 1.0}, {0.1, 0.03, 0.05, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
-	BStyles::ColorMap btColors = BStyles::ColorMap {{{0.0, 0.0, 0.0, 1.0}, {0.4, 0.2, 0.3, 1.0}, {0.0, 0.00, 0.00, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
+	BStyles::ColorMap btColors = BStyles::ColorMap {{{0.2, 0.05, 0.1, 1.0}, {0.4, 0.2, 0.3, 1.0}, {0.0, 0.00, 0.00, 1.0}, {0.0, 0.0, 0.0, 0.0}}};
 	BStyles::ColorMap noColors = BStyles::ColorMap {{{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}}};
 
 	//BStyles::Border border = {{fgColors[BStyles::Status::normal], 1.0}, 0.0, 2.0, 0.0};
@@ -330,6 +331,34 @@ private:
 						{
 							{BURID(BSTYLES_STYLEPROPERTY_FONT_URI), BUtilities::makeAny<BStyles::Font>(smFont)},
 							{BURID(BSTYLES_STYLEPROPERTY_TXCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(txColors)}
+						}
+					)}
+			})
+		},
+
+		// menu
+		{
+			URID ("/menu"), 
+			BStyles::Style
+			({	
+				{BURID(BSTYLES_STYLEPROPERTY_BGCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(btColors)},
+				{BURID(BSTYLES_STYLEPROPERTY_FGCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(fgColors)},
+				{BURID(BSTYLES_STYLEPROPERTY_BACKGROUND_URI), BUtilities::makeAny<BStyles::Fill>(darkBg)},
+				{URID ("/menu/label"), BUtilities::makeAny<BStyles::Style>
+					(
+						BStyles::Style
+						{
+							{BURID(BSTYLES_STYLEPROPERTY_FONT_URI), BUtilities::makeAny<BStyles::Font>(lFont)},
+							{BURID(BSTYLES_STYLEPROPERTY_TXCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(txColors)}
+						}
+					)},
+					{URID ("/menu/listbox"), BUtilities::makeAny<BStyles::Style>
+					(
+						BStyles::Style
+						{
+							{BURID(BSTYLES_STYLEPROPERTY_FONT_URI), BUtilities::makeAny<BStyles::Font>(lFont)},
+							{BURID(BSTYLES_STYLEPROPERTY_TXCOLORS_URI), BUtilities::makeAny<BStyles::ColorMap>(txColors)},
+							{BURID(BSTYLES_STYLEPROPERTY_BACKGROUND_URI), BUtilities::makeAny<BStyles::Fill>(darkBg)}
 						}
 					)}
 			})
