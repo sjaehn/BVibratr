@@ -3,8 +3,8 @@
 
 <svg
    width="960"
-   height="460"
-   viewBox="0 0 253.99999 121.70834"
+   height="480"
+   viewBox="0 0 253.99999 127.00001"
    version="1.1"
    id="svg1"
    inkscape:version="1.4.3 (1:1.4.3+202512261035+0d15f75042)"
@@ -28,15 +28,15 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:zoom="0.71535497"
-     inkscape:cx="507.44038"
-     inkscape:cy="257.91391"
+     inkscape:zoom="1.4307099"
+     inkscape:cx="858.31514"
+     inkscape:cy="350.52528"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1">
+     inkscape:current-layer="g1165">
     <inkscape:grid
        id="grid1"
        units="mm"
@@ -80,7 +80,7 @@
        inkscape:collect="always"
        xlink:href="#linearGradient1"
        id="linearGradient2"
-       x1="30.244529"
+       x1="30.24453"
        y1="-11.650545"
        x2="32.555779"
        y2="-11.650545"
@@ -91,10 +91,10 @@
      inkscape:groupmode="layer"
      id="layer1">
     <rect
-       style="fill:#800033;stroke:none;stroke-width:1.04841;stroke-dashoffset:0.2"
+       style="fill:#800033;stroke:none;stroke-width:1.07096;stroke-dashoffset:0.2"
        id="rect1"
        width="254"
-       height="121.70834"
+       height="127"
        x="0"
        y="0" />
     <text
@@ -126,7 +126,7 @@
     <g
        id="g1197"
        style="enable-background:new"
-       transform="translate(-9.1815772,-1.0803749)">
+       transform="matrix(0.81270423,0,0,0.81270423,-0.69033718,-0.76712057)">
       <text
          xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444px;line-height:5.29167px;font-family:'Good Times';-inkscape-font-specification:'Good Times';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.211667"
@@ -217,8 +217,9 @@
        id="path6-8-3-6" />
     <path
        style="fill:#ffffff;stroke:#ffffff;stroke-width:0.259118;stroke-dasharray:none;stroke-dashoffset:0.755906"
-       d="m 105.96501,79.374999 v 38.364581 0"
-       id="path6-7" />
+       d="M 105.96501,79.374999 V 123.03125"
+       id="path6-7"
+       sodipodi:nodetypes="cc" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-dashoffset:0.755906"
@@ -426,6 +427,41 @@
        id="text8"><tspan
          sodipodi:role="line"
          id="tspan8"
-         style="stroke-width:0.264583" /></text>
+         style="stroke-width:0.264583"
+         x="39.621574"
+         y="-3.9760273" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:4.23333px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#800033;stroke-width:0;stroke-dashoffset:0.755906;stroke-dasharray:none"
+       x="69.636757"
+       y="13.684931"
+       id="text2"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         style="font-size:4.23333px;stroke-width:0;stroke-dasharray:none"
+         x="69.636757"
+         y="13.684931">V 1.0.0</tspan></text>
+    <g
+       transform="matrix(0.90000002,0,0,0.90000002,15.107726,-23.786042)"
+       id="g1165"
+       style="display:inline;enable-background:new">
+      <circle
+         style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.529167;stroke-miterlimit:4;stroke-dasharray:none"
+         id="path1156"
+         cx="256.64581"
+         cy="158.75"
+         r="2.1166666" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333px;line-height:6.61458px;font-family:'Good Times';-inkscape-font-specification:'Good Times';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.264583"
+         x="255.43156"
+         y="160.21622"
+         id="text1160"><tspan
+           sodipodi:role="line"
+           id="tspan1158"
+           x="255.43156"
+           y="160.21622"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:4.23333px;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans Bold';fill:#ffffff;stroke-width:0.264583">?</tspan></text>
+    </g>
   </g>
 </svg>

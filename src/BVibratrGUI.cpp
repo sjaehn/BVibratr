@@ -23,6 +23,7 @@
 #include "BWidgets/BWidgets/Symbol.hpp"
 #include "BWidgets/BWidgets/TextButton.hpp"
 #include "BWidgets/BWidgets/Widget.hpp"
+#include "BWidgets/BUtilities/vsystem.hpp"
 #include "MIDI_CC.hpp"
 #include "Ports.hpp"
 #include "ADSR.hpp"
@@ -43,7 +44,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	map (nullptr),
 
 	mContainer(0, 0, BVIBRATR_GUI_WIDTH, BVIBRATR_GUI_HEIGHT, pluginPath + "inc/surface.png", URID ("/bgimage")),
-	//helpButton (918, 508, 24, 24, false, false, URID ("/halobutton"), BDICT ("Help")),
+	helpButton (918, 438, 24, 24, false, false, URID ("/halobutton"), BDICT ("Help")),
 	//ytButton (948, 508, 24, 24, false, false, URID ("/halobutton"), BDICT ("Preview")),
 	bypassLabel (820, 60, 60, 20, BDICT ("Bypass"), URID ("/ctlabel")),
 	bypassButton (840, 30, 20, 20, 2, true, false, URID ("/redbutton"), BDICT ("Bypass")),
@@ -187,7 +188,7 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	for (BWidgets::TextButton* m : midiChannelBoxes) m->setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::midiChannelsChangedCallback);
 	spfEdit.setCallbackFunction (BEvents::Event::EventType::valueChangedEvent, BVibratrGUI::spfChangedCallback);
 	loadWavetableButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::loadWavetableClickedCallback);
-	//helpButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::helpButtonClickedCallback);
+	helpButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::helpButtonClickedCallback);
 	//ytButton.setCallbackFunction (BEvents::Event::EventType::buttonPressEvent, BVibratrGUI::ytButtonClickedCallback);
 
 	// Pack widgets
@@ -224,9 +225,10 @@ BVibratrGUI::BVibratrGUI (const char *bundle_path, const LV2_Feature *const *fea
 	mContainer.add(&osc3Screen2);
 	mContainer.add(&resyncLabel);
 	mContainer.add(&tremoloLabel);
-	mContainer.add (&adsrDisplay);
-	mContainer.add (&waveformDisplay);
-	add (&mContainer);
+	mContainer.add(&adsrDisplay);
+	mContainer.add(&waveformDisplay);
+	mContainer.add(&helpButton);
+	add(&mContainer);
 
 	//Init map, URID
 	urids.init (features, &map);
@@ -820,16 +822,17 @@ void BVibratrGUI::wavetableFileSelectedCallback (BEvents::Event* event)
 	}
 }
 
-/*
+
 void BVibratrGUI::helpButtonClickedCallback (BEvents::Event* event)
 {
 	char cmd[] = WWW_BROWSER_CMD;
 	char param[] = HELP_URL;
 	char* argv[] = {cmd, param, NULL};
 	std::cerr << "BAngr.lv2#GUI: Call " << HELP_URL << " for help.\n";
-	if (BUtilities::vsystem (argv) == -1) std::cerr << "BAngr.lv2#GUI: Couldn't fork.\n";
+	if (BUtilities::vsystem (argv) == -1) std::cerr << "BVibratr.lv2#GUI: Couldn't fork.\n";
 }
 
+/*
 void BVibratrGUI::ytButtonClickedCallback (BEvents::Event* event)
 {
 	char cmd[] = WWW_BROWSER_CMD;

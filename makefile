@@ -16,7 +16,7 @@ ROOTFILES = *.ttl LICENSE
 INCFILES = inc/*.png inc/*.wvt
 B_FILES = $(addprefix $(BUNDLE)/, $(ROOTFILES) $(INCFILES))
 DSP_INCL = 
-GUI_CXX_INCL = #src/BWidgets/BUtilities/vsystem.cpp 
+GUI_CXX_INCL = src/BWidgets/BUtilities/vsystem.cpp 
 
 # pkg-config
 PKG_CONFIG ?= pkg-config

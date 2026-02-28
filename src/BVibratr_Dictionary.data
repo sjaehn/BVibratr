@@ -1,5 +1,13 @@
 {
     {
+        "Help",
+        {
+            {"de_DE", "Hilfe"},
+            {"fr_FR", "Aide"}
+        }
+    },
+
+    {
         "Bypass",
         {
             {"de_DE", "Bypass"},
@@ -35,6 +43,153 @@
         "Use",
         {
             {"de_DE", "Benutze"}
+        }
+    },
+
+    {
+        "Depth",
+        {
+            {"de_DE", "Tiefe"}
+        }
+    },
+
+    {
+        "Attack",
+        {
+            {"de_DE", "Attack"}
+        }
+    },
+
+    {
+        "Decay",
+        {
+            {"de_DE", "Decay"}
+        }
+    },
+
+    {
+        "Sustain",
+        {
+            {"de_DE", "Sustain"}
+        }
+    },
+
+    {
+        "Release",
+        {
+            {"de_DE", "Release"}
+        }
+    },
+
+    {
+        "Resync oscillators",
+        {
+            {"de_DE", "Resync. Oscillatoren"}
+        }
+    },
+
+    {
+        "Resync",
+        {
+            {"de_DE", "Resynchronisiere"}
+        }
+    },
+
+    {
+        "Frequency",
+        {
+            {"de_DE", "Frequenz"}
+        }
+    },
+
+    {
+        "Mode",
+        {
+            {"de_DE", "Modus"}
+        }
+    },
+
+    {
+        "Wavetable",
+        {
+            {"de_DE", "Wavetable"}
+        }
+    },
+
+    {
+        "Waveform",
+        {
+            {"de_DE", "Wellenform"}
+        }
+    },
+
+    {
+        "Sine",
+        {
+            {"de_DE", "Sinus"}
+        }
+    },
+
+    {
+        "Triangle",
+        {
+            {"de_DE", "Dreieck"}
+        }
+    },
+
+    {
+        "Square",
+        {
+            {"de_DE", "Rechteck"}
+        }
+    },
+
+    {
+        "Saw",
+        {
+            {"de_DE", "Sägezahn"}
+        }
+    },
+
+    {
+        "Wave size",
+        {
+            {"de_DE", "Wellengr."}
+        }
+    },
+
+    {
+        "No Data",
+        {
+            {"de_DE", "Keine Daten"}
+        }
+    },
+
+    {
+        "Amplitude",
+        {
+            {"de_DE", "Amplitude"}
+        }
+    },
+
+    {
+        "Modulation",
+        {
+            {"de_DE", "Modulation"}
+        }
+    },
+
+    {
+        "Amount",
+        {
+            {"de_DE", "Stärke"}
+        }
+    },
+
+    {
+        "Tremolo",
+        {
+            {"de_DE", "Tremolo"}
         }
     }
 }

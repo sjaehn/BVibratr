@@ -1,7 +1,5 @@
-# B.Vibratr (experimental)
+# B.Vibratr
 A "flavoured" vibrato as an instrument LV2 plugin.
-
-**Note: This software is still under construction. There will be major modifications which may break compatibility. Don't use it for production!!!**
 
 Key features:
 * Effect plugin, but play it like an instrument
@@ -18,22 +16,25 @@ b) Use the latest provided binaries (once established)
 
 c) Build your own binaries in the following three steps.
 
-Step 1: [Download the latest published version](https://github.com/sjaehn/BVibratr/releases) of B.Vibratr. 
-Or clone or [download the master](https://github.com/sjaehn/BVibratr/archive/master.zip) of this repository.
+Step 1: [Download the latest published version](https://github.com/sjaehn/BVibratr/releases)
+of B.Vibratr. 
+Or clone or [download the master](https://github.com/sjaehn/BVibratr/archive/master.zip) 
+of this repository.
 
-Step 2: Install pkg-config and the development packages for x11, cairo, and lv2 if not done yet. If you
-don't have already got the build tools (compilers, make, libraries) then install them too.
+Step 2: Install pkg-config and the development packages for x11, cairo, 
+sndfile and lv2 if not done yet. If you don't have already got the build
+tools (compilers, make, libraries) then install them too.
 
 On Debian-based systems you may run:
 ```
 sudo apt-get install build-essential
-sudo apt-get install pkg-config libx11-dev libcairo2-dev lv2-dev
+sudo apt-get install pkg-config libx11-dev libcairo2-dev libsndfile1-dev lv2-dev
 ```
 
 On Arch-based systems you may run:
 ```
 sudo pacman -S base-devel
-sudo pacman -S pkg-config libx11 cairo lv2
+sudo pacman -S pkg-config libx11 cairo libsndfile lv2
 ```
 
 Step 3: Building and installing into the default lv2 directory (/usr/local/lib/lv2/) is easy using `make` and
@@ -85,9 +86,26 @@ midi_in    ---> │           │
 There are at least two ways to realize the MIDI input:
 * In series after a synthesizer that offers MIDI through. In this case, you 
 can use both, MIDI and audio signal comming from the synth. 
+
+  ```
+              ┌───────┐                  ┌───────────┐
+              │       │ --> audio_1  --> │           │ --> audio_out_1
+              │ Synth │ --> audio_2  --> │ B.Vibratr │ --> audio_out_2
+  midi_in --> │       │ --> midi_thru--> │           │ 
+              └───────┘                  └───────────┘
+  ```
+
 * In parallel to an audio stream-producing instrument or sampler. In this 
 case, you can use the audio signal from your instrument, but you will need an
 additional MIDI input to use all the MIDI features from B.Vibratr.
+  ```
+             ┌───────┐                  ┌───────────┐
+             │       │ --> audio_1  --> │           │ --> audio_out_1
+             │ Synth │ --> audio_2  --> │ B.Vibratr │ --> audio_out_2
+  midi_1 --> │       │              ┌-> │           │ 
+             └───────┘              │   └───────────┘
+  midi_2 ---------------------------┘
+    ```
 
 
 ### Step 2: Set a trigger
@@ -128,7 +146,32 @@ manipulate OSC1, and OSC2 can mainpulate both OSC1 and OSC2. Supported
 manipulation are signal addition (add), frequency modulation (FM), phase 
 modulation (PM) and amplitude modulation (AM). In addition to the oscillator
 frequency, you can also set the amplitude (amount) of the respective 
-oscillator OSC2 and OSC3. 
+oscillator OSC2 and OSC3.
+
+```
+┌─────────────────────────┐
+| Osc_1:                  |
+| Sine, triangle, square, | ------------> vibrato
+| saw, wavetable          |      ^
+└─────────────────────────┘      |
+           ^                     |
+           |  FM1, PM1, AM1      | Add
+           └-----------------┐   |
+┌─────────────────────────┐  |   |
+| Osc_2:                  |  |   |  
+| Sine, triangle, square, | -┴---┘
+| saw                     |  ^   ^
+└─────────────────────────┘  |   |
+           ^                 |   |
+           |  FM2, PM2, AM2  |   |
+           └-----------------┐   |
+┌─────────────────────────┐  |   |
+| Osc_3:                  |  |   |
+| Sine, triangle, square, | -┴---┘
+| saw                     |
+└─────────────────────────┘
+
+```
 
 In addition to the vibrato effect, you can apply a tremolo volume effect. The 
 tremolo is parallelized to the vibrato change in pitch (or antiparallel in the
@@ -136,7 +179,14 @@ case of negative tremolo values). For positive tremolo values: The higher the
 pitch, the higher the volume. And for negative tremolo values *vice versa*.
 
 Finally, B.Vibratr uses a standard ADSR envelope to control the vibrato depth
-and the tremolo amount.
+and the tremolo amount. There is also an option to (re-)synchronize all three 
+oscillators with the ADSR start/stop. If this option is activated (default), 
+then the oscillators are reset up start or stop vibrato playing. This results
+in a highly reproducible vibrato effect. If you want more flexibly sounding
+vibratos, then deactivate resync and optinally combine it with the use of
+wavetables.
+
+
 
 
 ### Appendix: Wavetables
@@ -218,13 +268,14 @@ request or notifying me (issue report, e-mail, ...).
   * Also support Surge XT .wt wavetables
   * Communicate only path data instead of full wavetable data between host and ui
 * Simple wavetable manipulation (wave size only)
+* Optional re-syncronzize oscillators with adsr
+* Internationalization: EN, DE
 
 
 ## TODOs
 
-* Internationalization
-* Presets
-* Documentation
+* Internationalization other languages (community)
+* Presets (community)
 * Multiple keys (later versions)
 
 

@@ -34,7 +34,7 @@
 #define WWW_BROWSER_CMD "x-www-browser"
 #endif
 
-// #define HELP_URL "https://github.com/sjaehn/BAngr/blob/master/README.md"
+#define HELP_URL "https://github.com/sjaehn/BVibratr/blob/master/README.md"
 // #define YT_URL "https://www.youtube.com/watch?v=-kWy_1UYazo"
 
 #define URID(x) (BURID(BVIBRATR_GUI_URI x))
@@ -62,7 +62,7 @@ private:
 	static void spfChangedCallback (BEvents::Event* event);
 	static void loadWavetableClickedCallback (BEvents::Event* event);
 	static void wavetableFileSelectedCallback (BEvents::Event* event);
-	//static void helpButtonClickedCallback (BEvents::Event* event);
+	static void helpButtonClickedCallback (BEvents::Event* event);
 	//static void ytButtonClickedCallback (BEvents::Event* event);
 
 	const std::string pluginPath;
@@ -74,7 +74,7 @@ private:
 
 	// Widgets
 	BWidgets::Image mContainer;
-	//BWidgets::Button helpButton;
+	BWidgets::Button helpButton;
 	//BWidgets::Button ytButton;
 	BWidgets::Label bypassLabel;
 	BWidgets::Knob bypassButton;
