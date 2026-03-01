@@ -19,6 +19,7 @@
 #include <new>
 
 #define SQRT_12_2 (pow (2.0, 1.0 / 12.0))
+#define DEPTH_TO_BUFFER_OFFSET(x) (x * (SQRT_12_2 - 1.0) * rate + 2)
 
 BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature* const* features) :
 	rate (samplerate),
@@ -35,11 +36,8 @@ BVibratr::BVibratr (double samplerate, const char* bundlePath, const LV2_Feature
 	note(0xFF),
 	depth_cc (1.0),
 	buffer_1(0x10000),
-	buffer_2(0x10000),
-	buffer_offset((SQRT_12_2 - 1.0) *	// Up to 1 semitone
-					samplerate			// Up to 1 second phase length
-				 ),						// TODO report latency
-	depth(0.0),
+	buffer_2(0x10000),		
+	depth(0.5, 0.25 / samplerate),	// Up to 25 cents per second
 	shift(0.0, (SQRT_12_2 - 1.0)),	// Limit temporal shift to 1 semitone
 	amp(1.0f, 0.001f),
 	mix(0.0f, 0.001f),
@@ -122,7 +120,7 @@ void BVibratr::run (uint32_t n_samples)
 	if (!latency_port) return;
 
 	// Update controllers
-	*(latency_port) = buffer_offset;
+	*(latency_port) = DEPTH_TO_BUFFER_OFFSET(depth.get());
 	const float o_midi_channels = controllers[BVIBRATR_MIDI_CHANNEL];
 	for (int i = 0; i < BVIBRATR_NR_CONTROLLERS; ++i) 
 	{
@@ -141,11 +139,11 @@ void BVibratr::run (uint32_t n_samples)
 					break;
 
 				case BVIBRATR_DEPTH_IS_CC:
-					depth =	((value == 128) ? (0.01 /* cents */ * controllers[BVIBRATR_DEPTH]) : depth_cc);
+					depth.set(((value == 128) ? (0.01 /* cents */ * controllers[BVIBRATR_DEPTH]) : depth_cc));
 					break;
 
 				case BVIBRATR_DEPTH:
-					if (controllers[BVIBRATR_DEPTH_IS_CC] == 128) depth = 0.01 /* cents */ * value;
+					if (controllers[BVIBRATR_DEPTH_IS_CC] == 128) depth.set(0.01 /* cents */ * value);
 					break;
 
 				case BVIBRATR_OSC1_MODE:
@@ -320,7 +318,7 @@ void BVibratr::on_midi_cc (const uint8_t channel, const uint8_t cc, const uint8_
 						(cc == controllers[BVIBRATR_DEPTH_IS_CC]))
 					{
 						depth_cc = static_cast<double>(param) / 127.0;
-						depth = 0.01 /* cents */ * controller_limits[BVIBRATR_DEPTH].max * depth_cc;
+						depth.set(0.01 /* cents */ * controller_limits[BVIBRATR_DEPTH].max * depth_cc);
 					}
 				}
 		}
@@ -386,7 +384,10 @@ void BVibratr::play (uint32_t start, uint32_t end)
 			integral *= adsr.get_value();
 		}
 
-		// Vibrato depth 
+		// Vibrato depth
+		const double depth = this->depth.get();
+		this->depth.proceed();
+		const size_t buffer_offset = DEPTH_TO_BUFFER_OFFSET(depth);
 		integral *= depth;
 		shift.set((SQRT_12_2 - 1.0) * integral);
 

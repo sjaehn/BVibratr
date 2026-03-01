@@ -85,8 +85,7 @@ private:
 	double depth_cc;
 	RingBuffer<float> buffer_1;
 	RingBuffer<float> buffer_2;
-	size_t buffer_offset;
-	double depth;
+	LinearFader<double> depth;
 	LinearFader<double> shift;				// Temporal shift (vibrato)
 	LinearFader<float> amp;					// Volume change (tremolo)
 	LinearFader<float> mix;					// Mix for change in dry/wet and bypass
