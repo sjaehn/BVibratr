@@ -270,6 +270,7 @@ request or notifying me (issue report, e-mail, ...).
 * Simple wavetable manipulation (wave size only)
 * Optional re-syncronzize oscillators with adsr
 * Internationalization: EN, DE
+* Dynamic latency report
 
 
 ## TODOs
