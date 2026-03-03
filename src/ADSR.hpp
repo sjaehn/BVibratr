@@ -4,7 +4,7 @@
 
 /**
 ADSR envelope class.
-TODO: Faders, non-linearity.*/
+*/
 template <class T>
 class ADSR
 {
@@ -177,7 +177,6 @@ template <class T> inline void ADSR<T>::set_parameters (const T attack, const T 
 template <class T> inline void ADSR<T>::set_parameter(const Phase phase, const T value)
 {
     // This piece of code is made for linear fade of A, D and R
-    // TODO Nonlinear faders
     if (phase == phase_) 
     {
         switch (phase) 

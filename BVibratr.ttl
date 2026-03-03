@@ -54,8 +54,8 @@ plugin:wavetable_pos
         rdfs:comment "Flavoured vibrato as an instrument" ;
 	doap:maintainer <http://www.jahnichen.de/sjaehn#me> ;
 	doap:license <http://usefulinc.com/doap/licenses/gpl> ;
-#	lv2:microVersion 1 ;
-#	lv2:minorVersion 0 ;
+	lv2:microVersion 0 ;
+	lv2:minorVersion 2 ;
         lv2:binary <BVibratr.so> ;
         lv2:optionalFeature lv2:hardRTCapable , state:loadDefaultState , state:threadSafeRestore , state:mapPath , state:freePath ;
 	lv2:requiredFeature urid:map , work:schedule ;
@@ -259,7 +259,7 @@ plugin:wavetable_pos
                 lv2:name "Osc 1 Mode" ;
                 lv2:portProperty lv2:integer, lv2:enumeration ;
 		lv2:scalePoint [ rdfs:label "LFO"; rdf:value 1 ] ;
-		lv2:scalePoint [ rdfs:label "Wavetable"; rdf:value 2 ] ; # TODO, not supported yet
+		lv2:scalePoint [ rdfs:label "Wavetable"; rdf:value 2 ] ;
 		lv2:default 1 ;
                 lv2:minimum 1 ;
                 lv2:maximum 2 ;
@@ -315,7 +315,7 @@ plugin:wavetable_pos
 		lv2:scalePoint [ rdfs:label "Off"; rdf:value 1 ] ;
 		lv2:scalePoint [ rdfs:label "Add"; rdf:value 2 ] ;
                 lv2:scalePoint [ rdfs:label "FM 1"; rdf:value 3 ] ;
-                lv2:scalePoint [ rdfs:label "PM 1"; rdf:value 4 ] ; # TODO
+                lv2:scalePoint [ rdfs:label "PM 1"; rdf:value 4 ] ;
                 lv2:scalePoint [ rdfs:label "AM 1"; rdf:value 5 ] ;
 		lv2:default 1 ;
                 lv2:minimum 1 ;
@@ -372,10 +372,10 @@ plugin:wavetable_pos
 		lv2:scalePoint [ rdfs:label "Off"; rdf:value 1 ] ;
 		lv2:scalePoint [ rdfs:label "Add"; rdf:value 2 ] ;
                 lv2:scalePoint [ rdfs:label "FM 1"; rdf:value 3 ] ;
-                lv2:scalePoint [ rdfs:label "PM 1"; rdf:value 4 ] ; # TODO
+                lv2:scalePoint [ rdfs:label "PM 1"; rdf:value 4 ] ;
                 lv2:scalePoint [ rdfs:label "AM 1"; rdf:value 5 ] ;
                 lv2:scalePoint [ rdfs:label "FM 2"; rdf:value 6 ] ;
-                lv2:scalePoint [ rdfs:label "PM 2"; rdf:value 7 ] ; # TODO
+                lv2:scalePoint [ rdfs:label "PM 2"; rdf:value 7 ] ;
                 lv2:scalePoint [ rdfs:label "AM 2"; rdf:value 8 ] ;
 		lv2:default 1 ;
                 lv2:minimum 1 ;

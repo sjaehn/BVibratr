@@ -29,14 +29,14 @@
      inkscape:document-units="px"
      showgrid="false"
      inkscape:zoom="1.4307099"
-     inkscape:cx="858.31514"
-     inkscape:cy="350.52528"
+     inkscape:cx="309.6365"
+     inkscape:cy="33.899255"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g1165">
+     inkscape:current-layer="layer1">
     <inkscape:grid
        id="grid1"
        units="mm"
@@ -104,13 +104,13 @@
        style="font-size:32px;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);display:inline;fill:#ffffff;stroke:none;stroke-width:4;stroke-dashoffset:0.2"><tspan
          x="18.898438"
          y="57.657087"
-         id="tspan11"><tspan
+         id="tspan13"><tspan
            style="font-size:42.6667px;font-family:'Good Times';-inkscape-font-specification:'Good Times'"
-           id="tspan1">B.</tspan><tspan
+           id="tspan3">B.</tspan><tspan
            style="font-family:'Good Times';-inkscape-font-specification:'Good Times'"
-           id="tspan9">V</tspan><tspan
+           id="tspan4">V</tspan><tspan
            style="font-family:'Good Times';-inkscape-font-specification:'Good Times'"
-           id="tspan10">  BRATR</tspan></tspan></text>
+           id="tspan12">  BRATR</tspan></tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.80375px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-dashoffset:0.755906"
@@ -432,7 +432,7 @@
          y="-3.9760273" /></text>
     <text
        xml:space="preserve"
-       style="font-size:4.23333px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#800033;stroke-width:0;stroke-dashoffset:0.755906;stroke-dasharray:none"
+       style="font-size:4.23333px;font-family:'Good Times';-inkscape-font-specification:'Good Times';writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#800033;stroke-width:0;stroke-dasharray:none;stroke-dashoffset:0.755906"
        x="69.636757"
        y="13.684931"
        id="text2"><tspan
@@ -440,7 +440,7 @@
          id="tspan2"
          style="font-size:4.23333px;stroke-width:0;stroke-dasharray:none"
          x="69.636757"
-         y="13.684931">V 1.0.0</tspan></text>
+         y="13.684931">V 1.2.0</tspan></text>
     <g
        transform="matrix(0.90000002,0,0,0.90000002,15.107726,-23.786042)"
        id="g1165"
