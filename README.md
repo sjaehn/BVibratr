@@ -247,30 +247,8 @@ request or notifying me (issue report, e-mail, ...).
 
 ## What's new
 
-* Bypass, dry/wet
-* Enable trigger on any MIDI key 
-* Report plugin latency to host
-* Click-safe change of osc mode
-* Select channels using checkboxes
-* Used-defined waveforms
-  * Import wavetables from text files
-  * Show wavetables
-  * Wavetable file chooser
-* Autoplay (no trigger channels set)
-* Documentation (incomplete)
-* Waveform: saw
-* Used-defined waveforms
-  * Calculate integrals of pitch wavetables
-  * Wavetable "oscillator"
-  * Communicate wavetables from UI to DSP (and vice versa)
-  * Store and restore wavetables
-  * Import wavetables from audio files (incl. Serum wavetables)
-  * Also support Surge XT .wt wavetables
-  * Communicate only path data instead of full wavetable data between host and ui
-* Simple wavetable manipulation (wave size only)
-* Optional re-syncronzize oscillators with adsr
-* Internationalization: EN, DE
-* Dynamic latency report
+* Dynamic latency report, largely reduced latency
+* Scroll wheel behaviour harmonized
 
 
 ## TODOs
