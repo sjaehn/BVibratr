@@ -10,16 +10,17 @@ Key features:
 
 ## Installation
 
-a) Install the bvibratr package for your system (once established)
+a) Install the bvibratr package for your system (once established).
 
-b) Use the latest provided binaries (once established)
+b) Use the latest provided binaries.
 
-c) Build your own binaries in the following three steps.
+**c) Recommended: Build your own binaries in the following three steps.**
 
 Step 1: [Download the latest published version](https://github.com/sjaehn/BVibratr/releases)
-of B.Vibratr. 
-Or clone or [download the master](https://github.com/sjaehn/BVibratr/archive/master.zip) 
-of this repository.
+of B.Vibratr. Or clone it including its submodules from this repository:
+```
+git clone --recurse-submodules https://github.com/sjaehn/BVibratr
+```
 
 Step 2: Install pkg-config and the development packages for x11, cairo, 
 sndfile and lv2 if not done yet. If you don't have already got the build
